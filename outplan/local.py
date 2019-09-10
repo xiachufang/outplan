@@ -2,11 +2,9 @@
 
 from os import getpid
 
-try:
-    from greenlet import getcurrent
 
-    # getcurrent() return greenlet.greenlet object.
-    get_ident = lambda: id(getcurrent())
+try:
+    from greenlet import getcurrent as get_ident
 except ImportError:
     try:
         from thread import get_ident
@@ -15,7 +13,14 @@ except ImportError:
 
 
 def greenlet_ident():
-    idents = [get_ident(), int(getpid())]
+    ident = get_ident()
+    try:
+        ident = int(ident)
+    except TypeError:
+        # greenlet.getcurrent() return greenlet.greenlet object.
+        ident = id(ident)
+
+    idents = [ident, int(getpid())]
     return "-".join(str(i) for i in idents)
 
 

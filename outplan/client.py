@@ -1,15 +1,20 @@
 # coding: utf-8
 
-from .exceptions import ExperimentValidateError
-from .local import experiment_context
 from contextlib import contextmanager
+from typing import Any, Dict, List
+
+import simplejson
+
+from .exceptions import ExperimentValidateError
+from .experiment import NamespaceItem
+from .local import experiment_context
 
 
 class ExperimentGroupClient(object):
     """experiment group client"""
 
     def __init__(self, namespaces_items, tracking_client=None, logger=None):
-        # type: (List[NamespaceItem]) -> None
+        # type: (List[NamespaceItem], Any, Any) -> None
 
         self.namespaces_items = namespaces_items
         self.namespaces = {namespace.name: namespace for namespace in namespaces_items}
@@ -25,7 +30,7 @@ class ExperimentGroupClient(object):
             names.add(namespace.name)
 
     def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
-        # type: (NamespaceItem, str) -> Any
+        # type: (NamespaceItem, str, int, str, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
         if namespace_name not in self.namespaces:
             raise ExperimentValidateError("Namespace name not found.")

@@ -2,7 +2,7 @@
 
 from .client import ExperimentGroupClient
 from .exceptions import ExperimentBaseError
-from .experiment import NamespaceItem, GroupItem, ExperimentItem
+from .experiment import ExperimentItem, GroupItem, NamespaceItem
 
 
 __all__ = (

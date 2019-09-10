@@ -1,14 +1,13 @@
 # coding: utf-8
 
 from __future__ import absolute_import
-
 from decimal import Decimal
+from typing import Any, Dict, List
 
 import simplejson
 from planout.experiment import DefaultExperiment
 from planout.namespace import SimpleNamespace
 from planout.ops.random import WeightedChoice
-from typing import Any, Dict, List
 
 from .const import GroupResultType
 from .exceptions import ExperimentGroupNotFindError, ExperimentValidateError
@@ -16,6 +15,7 @@ from .exceptions import ExperimentGroupNotFindError, ExperimentValidateError
 
 class TrackingGroup(object):
     """Group object with group trace info"""
+
     def __init__(self, group_name=None, experiment_name=None, group_extra_params=None):
         self.group_names = []
         self.experiment_names = []
@@ -104,6 +104,7 @@ class NamespaceItem(object):
     """一个 namespace 对应一个总体，里面可以有多个实验，
     但如果多个实验影响同一个结果，则多个实验必须处于同一个 namespace
     """
+
     def __init__(self, name, experiment_items, bucket=10, unit="unit"):
         if not all([name, experiment_items]):
             raise ValueError("Namespace name and experiment_items required.")

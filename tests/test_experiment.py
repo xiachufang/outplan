@@ -1,7 +1,7 @@
 # coding: utf-8
 
-from outplan.experiment import ExperimentItem, GroupItem, NamespaceItem
 from outplan.client import ExperimentGroupClient
+from outplan.experiment import ExperimentItem, GroupItem, NamespaceItem
 from outplan.local import experiment_context
 
 
