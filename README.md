@@ -1,4 +1,7 @@
 # outplan
+
+[![Build Status](https://travis-ci.com/xiachufang/outplan.svg?branch=master)](https://travis-ci.com/xiachufang/outplan) ![GitHub](https://img.shields.io/github/license/xiachufang/outplan)
+
 Support nested experiment/namespace base on [PlanOut](https://github.com/facebook/planout)
 
 # Install
