@@ -1,9 +1,9 @@
 # coding: utf-8
 
 import io
-
-from setuptools import setup, find_packages
 from os import path
+
+from setuptools import find_packages, setup
 
 
 here = path.abspath(path.dirname(__file__))
@@ -14,7 +14,7 @@ with io.open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='outplan',
 
-    version='0.1.0',
+    version='0.1.1',
 
     description='Support nested experiment/namespace base on Facebook Planout',
     long_description=long_description,
