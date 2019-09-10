@@ -11,7 +11,7 @@ SimpleNamespace = NamespaceItem(
     bucket=10,
     experiment_items=[
         ExperimentItem(
-            name="classroom_section",
+            name="exp_1",
             bucket=10,
             group_items=[
                 GroupItem(name="a", weight=0.5),
