@@ -1,6 +1,11 @@
 # outplan
 Support nested experiment/namespace base on [PlanOut](https://github.com/facebook/planout)
 
+# Install
+```python
+pip install outplan
+```
+
 # Usage
 
 ```python
@@ -33,9 +38,9 @@ print(client.get_group("namespace_1", unit="your_unit"))
 
 ```shell
 # run test
-> make test
+make test
 
 # commit
-> pip install pre-commit
-> # and commit here
+pip install pre-commit
+# and commit here
 ```
