@@ -3,6 +3,7 @@ language: python
 python:
   - "2.7"
   - "3.6"
+  - "3.7"
 
 install:
   - pip install -e .
@@ -10,3 +11,12 @@ install:
 
 script:
   - pytest -vv -s tests/
+
+deploy:
+  provider: pypi
+  user: xiachufang
+  password:
+    secure: mbAbQQZctkaA93DqQIf+Yhs9NSJmG0sRIh3j7P98uKtTg2M9ptIDjnF4npbefpSnG9z1M4wjrzMMkD/toIZAAEjhVpoS8OA9Mmox+CjrUUAEU2GLWVK6+PGRsqXEh9RuTUSXCyyq+1KcBY3UeayCuLed3SR+6sSvKm01eERRZ0mxhdiofWjvUzCF+KAy113jSuVrQ9hImk/UoPkZgnUULgt6E8OHoDHVuw1J4maZ2yefksBHbxrOXXnZ8GAVlpJ57IBJA0UQQ36wjAEwzS4qEvOx+eZCyHx1L3uGlGJ16+Q10m8GoXuo4oC5iGVsvcjenQctiCOQ8209Z0J2eHI3Otiwf9bbFHdd1LZDfKZWauayh5hkZ+XNUCmKbJOrMdtjzLehn5qO02npGC52OM93D9fJfHQLUXWMEj0joZCABkBzo6q8tvMXMx03rNqPI72p0BzT5JFyBzTU4dkl6MqolyYS2LA+VjYrI7JpxAjQeB2hNJY0jWbT2ZA3hJtJ6xOTK4pIDf/jSB24d1CTkEUuXQRdDg7mgj7wFBOp0OM3cDv4PFVeCoW5Dgm2nKbenTagdbFFjl+iXDpAP4eG8ib7BY9yqix7rb2yQHo2oLy4F4YoK7Y1OMkAsZoaLiiQrQKLME9t4bK7qM0xqKb/BVvXh0UeUCH8ktES1YgbaZMwseQ=
+  on:
+    repo: xiachufang/outplan
+    tags: true
