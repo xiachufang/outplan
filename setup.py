@@ -18,6 +18,7 @@ setup(
 
     description='Support nested experiment/namespace base on Facebook Planout',
     long_description=long_description,
+    long_description_content_type='text/markdown',
 
     url='https://github.com/xiachufang/outplan',
 
