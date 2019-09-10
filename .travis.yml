@@ -7,10 +7,9 @@ python:
 
 install:
   - pip install -e .
-  - pip install pytest gevent mypy
+  - pip install pytest gevent
 
 script:
-  - mypy outplan
   - pytest -vv -s tests/
 
 deploy:
