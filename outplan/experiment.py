@@ -190,7 +190,7 @@ class NamespaceItem(object):
         # type: (Dict[str, Any]) -> NamespaceItem
         return cls(
             name=data['name'],
-            bucket=data.get('bucket', 10),
+            bucket=int(data.get('bucket', 10)),
             experiment_items=[ExperimentItem.from_dict(spec) for spec in data['experiment_items']]
         )
 
@@ -222,7 +222,7 @@ class ExperimentItem(object):
         # type: (Dict[str, Any]) -> ExperimentItem
         return cls(
             name=data['name'],
-            bucket=data['bucket'],
+            bucket=int(data['bucket']),
             group_items=[GroupItem.from_dict(spec) for spec in data['group_items']],
             pre_condition=eval(data['pre_condition']) if data.get('pre_condition') else None
         )
@@ -273,7 +273,7 @@ class GroupItem(object):
         # type: (Dict[str, Any]) -> GroupItem
         return cls(
             name=data['name'],
-            weight=data['weight'],
+            weight=float(data['weight']),
             layer_namespaces=[NamespaceItem.from_dict(spec) for spec in data.get('layer_namespaces', [])],
             extra_params=data.get('extra_params')
         )
