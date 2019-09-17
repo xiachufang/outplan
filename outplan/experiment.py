@@ -123,18 +123,18 @@ class NamespaceItem(object):
             experiment_total_bucket += experiment_item.bucket
 
             if experiment_item.name in experiment_names:
-                raise ExperimentValidateError(u"experiment name 重复")
+                raise ExperimentValidateError(u"experiment name: {} 重复".format(experiment_item.name))
 
             experiment_names.add(experiment_item.name)
 
         if experiment_total_bucket != self.bucket:
-            raise ExperimentValidateError(u"实验总 bucket 数必须与 namespace bucket 相等")
+            raise ExperimentValidateError(u"实验({})总 bucket 数必须与 namespace bucket 相等".format(self.name))
 
         # 同一个 namespace 下的 group name 必须唯一
         group_names = get_namespace_group_names(self)
 
         if len(group_names) != len(set(group_names)):
-            raise ExperimentValidateError("group name 重复")
+            raise ExperimentValidateError("实验({}) group name 重复".format(self.name))
 
     def get_group(self, unit, **params):
         valid_experiment_items = []
@@ -215,7 +215,7 @@ class ExperimentItem(object):
             group_names.add(group_item.name)
 
         if sum([Decimal(str(group.weight)) for group in self.group_items]) != 1:
-            raise ExperimentValidateError("group_items 的 weight 总数不为 1")
+            raise ExperimentValidateError("实验({}) 分组的 weight 总数不为 1".format(self.name))
 
     @classmethod
     def from_dict(cls, data):
@@ -252,7 +252,7 @@ class GroupItem(object):
         else:
             self.result_type = GroupResultType.group
             if self.weight > 1:
-                raise ExperimentValidateError("group weight 必须小于等于 1")
+                raise ExperimentValidateError("group weight({}) 必须小于等于 1".format(self.name))
 
     def get_group(self, unit, **params):
         if self.result_type == GroupResultType.group:
