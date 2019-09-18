@@ -73,7 +73,7 @@ def test_get_greenlet_ident():
         def run(self):
             ids.append(greenlet_ident())
 
-    N_THREADS = 10
+    N_THREADS = 5
     threads = []
     for _ in range(N_THREADS):
         _thread = T()
