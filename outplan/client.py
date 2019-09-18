@@ -69,9 +69,6 @@ class ExperimentGroupClient(object):
     def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
         # type: (str, str, int, str, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
-        if namespace_name not in self.namespaces:
-            raise ExperimentValidateError("Namespace {} not found.".format(namespace_name))
-
         namespace_item = self.get_namespace_item(namespace_name)
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
         if not track or not any([user_id, pdid]) or not self.tracking_client:
