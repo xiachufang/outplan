@@ -1,10 +1,12 @@
 # coding: utf-8
 
+import time
 from contextlib import contextmanager
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import simplejson
 
+from .const import ONE_MINUTE
 from .exceptions import ExperimentValidateError
 from .experiment import NamespaceItem
 from .local import experiment_context
@@ -13,13 +15,22 @@ from .local import experiment_context
 class ExperimentGroupClient(object):
     """experiment group client"""
 
-    def __init__(self, namespaces_items, tracking_client=None, logger=None):
-        # type: (List[NamespaceItem], Any, Any) -> None
+    def __init__(self, namespaces_items, lazy_load_namespaces=None, lazy_load_func=None,
+                 tracking_client=None, logger=None,
+                 lazy_load_expire=10 * ONE_MINUTE):
+        # type: (List[NamespaceItem], Optional[List[str]], Callable, Any, Any, int) -> None
 
         self.namespaces_items = namespaces_items
         self.namespaces = {namespace.name: namespace for namespace in namespaces_items}
         self.tracking_client = tracking_client
         self.logger = logger
+        self.lazy_load_namespaces = lazy_load_namespaces or []
+        self.lazy_load_expire = lazy_load_expire
+        self._lazy_load_init_ts = {}    # type: Dict[str, int]  # 记录 lazy load 的 namespace 初始化时间，expire 之后重新 load
+        self.lazy_load_namespace_items = {}     # type: Dict[str, NamespaceItem]
+        self.lazy_load_func = lazy_load_func
+
+        self.validate()
 
     def validate(self):
         names = set()
@@ -29,13 +40,40 @@ class ExperimentGroupClient(object):
 
             names.add(namespace.name)
 
+    def get_namespace_item(self, namespace_name):
+        # type: (str,) -> NamespaceItem
+        if namespace_name in self.namespaces:
+            return self.namespaces[namespace_name]
+
+        if namespace_name not in self.lazy_load_namespaces:
+            raise ExperimentValidateError("Namespace {} not found.".format(namespace_name))
+
+        if not self.lazy_load_func:
+            raise ExperimentValidateError("lazy_load_func not found")
+
+        if namespace_name in self.lazy_load_namespaces and namespace_name in self.lazy_load_namespace_items:
+            namespace_item_init_timestamp = self._lazy_load_init_ts.get(namespace_name, 0)
+            now = int(time.time())
+
+            if (now - namespace_item_init_timestamp) < self.lazy_load_expire:
+                return self.lazy_load_namespace_items[namespace_name]
+
+        _ns = self.lazy_load_func(namespace_name)
+        if not _ns:
+            raise ExperimentValidateError("Namespace {} not found".format(namespace_name))
+
+        self.lazy_load_namespace_items[namespace_name] = _ns
+        self._lazy_load_init_ts[namespace_name] = int(time.time())
+        return self.lazy_load_namespace_items[namespace_name]
+
     def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
-        # type: (NamespaceItem, str, int, str, bool, Dict[Any, Any]) -> Any
+        # type: (str, str, int, str, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
         if namespace_name not in self.namespaces:
-            raise ExperimentValidateError("Namespace name not found.")
+            raise ExperimentValidateError("Namespace {} not found.".format(namespace_name))
 
-        tracking_group = self.namespaces[namespace_name].get_group(unit, user_id=user_id, pdid=pdid, **params)
+        namespace_item = self.get_namespace_item(namespace_name)
+        tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
         if not track or not any([user_id, pdid]) or not self.tracking_client:
             return tracking_group
 

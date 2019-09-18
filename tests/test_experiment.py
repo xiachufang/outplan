@@ -1,6 +1,9 @@
 # coding: utf-8
 
+import pytest
+
 from outplan.client import ExperimentGroupClient
+from outplan.exceptions import ExperimentValidateError
 from outplan.experiment import ExperimentItem, GroupItem, NamespaceItem
 from outplan.local import experiment_context
 
@@ -253,6 +256,18 @@ def test_experiment_group_client():
     # 三层嵌套
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_ctl_2', 'h_ctl_2')
     assert group.group_extra_params == "hahaha"
+
+
+def test_lazy_load_namespace():
+    def lazy_load_it(namespace):
+        return NamespaceItem.from_dict(namespace_spec_dict)
+
+    c = ExperimentGroupClient([], lazy_load_namespaces=['namespace_2'], lazy_load_func=lazy_load_it)
+    group = c.get_tracking_group('namespace_1', unit="12345", user_id=1, track=False)
+    assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp.clt_p9', 'collect.c9-a0')
+
+    with pytest.raises(ExperimentValidateError):
+        group = c.get_tracking_group('namespace_2', unit="12345", user_id=1, track=False)
 
 
 def test_experiment_context():
