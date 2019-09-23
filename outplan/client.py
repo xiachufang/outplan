@@ -8,7 +8,7 @@ import simplejson
 
 from .const import ONE_MINUTE
 from .exceptions import ExperimentValidateError
-from .experiment import NamespaceItem
+from .experiment import NamespaceItem, TrackingGroup
 from .local import experiment_context
 
 
@@ -69,6 +69,14 @@ class ExperimentGroupClient(object):
     def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
         # type: (str, str, int, str, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
+
+        # 如果指定分组，直接返回，但是不带实验链路
+        if experiment_context.specify_group:
+            return TrackingGroup(
+                group_name=experiment_context.specify_group,
+                group_extra_params=experiment_context.specify_group_extra_params
+            )
+
         namespace_item = self.get_namespace_item(namespace_name)
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
         if not track or not any([user_id, pdid]) or not self.tracking_client:
@@ -95,13 +103,24 @@ class ExperimentGroupClient(object):
 
         self.namespaces[namespace_item.name] = namespace_item
 
-    def setup_experiment_context(self, user_id=None, device_id=None, origin=None, version=None):
+    @classmethod
+    def setup_experiment_context(cls, user_id=None, device_id=None,
+                                 origin=None, version=None, specify_group=None,
+                                 specify_group_extra_params=None):
+        """设置全局的实验上下文
+
+        :param specify_group: 指定用户分组
+        :param specify_group_extra_params: 指定分组额外参数
+        """
         experiment_context.user_id = user_id
         experiment_context.device_id = device_id
         experiment_context.origin = origin
         experiment_context.version = version
+        experiment_context.specify_group = specify_group
+        experiment_context.specify_group_extra_params = specify_group_extra_params
 
-    def release_context(self):
+    @classmethod
+    def release_context(cls):
         experiment_context.release()
 
     @contextmanager
