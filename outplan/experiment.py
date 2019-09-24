@@ -1,14 +1,14 @@
 # coding: utf-8
 
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import simplejson
 from planout.experiment import DefaultExperiment
 from planout.namespace import SimpleNamespace
 from planout.ops.random import WeightedChoice
 
-from .const import GroupResultType
+from .const import GroupResultType, UserTagFilterType
 from .exceptions import ExperimentGroupNotFindError, ExperimentValidateError
 
 
@@ -109,7 +109,7 @@ class NamespaceItem(object):
             raise ValueError("Namespace name and experiment_items required.")
 
         self.name = name
-        self.experiment_items = experiment_items
+        self.experiment_items = experiment_items    # type: List[ExperimentItem]
         self.bucket = bucket
         self.unit = unit
 
@@ -140,10 +140,30 @@ class NamespaceItem(object):
         valid_experiment_items = []
         for experiment_item in self.experiment_items:
             if callable(experiment_item.pre_condition):
-                if experiment_item.pre_condition(**params):
-                    valid_experiment_items.append(experiment_item)
-            else:
-                valid_experiment_items.append(experiment_item)
+                if not experiment_item.pre_condition(**params):
+                    continue
+
+            if experiment_item.tag_ids and experiment_item.tag_filter_func:
+                res = None
+                # 多个标签为 AND 关系
+                if experiment_item.tag_filter_type == UserTagFilterType.AND:
+                    res = True
+                    for tag_id in experiment_item.tag_ids:
+                        res &= experiment_item.tag_filter_func(tag_id, **params)
+                        if not res:
+                            break
+                # 多个标签为 OR 关系
+                elif experiment_item.tag_filter_type == UserTagFilterType.OR:
+                    res = False
+                    for tag_id in experiment_item.tag_ids:
+                        res |= experiment_item.tag_filter_func(tag_id, **params)
+                        if res:
+                            break
+
+                if not res:
+                    continue
+
+            valid_experiment_items.append(experiment_item)
 
         if not valid_experiment_items:
             return None
@@ -176,33 +196,36 @@ class NamespaceItem(object):
             raise NotImplementedError()
 
     @classmethod
-    def from_json(cls, json_namespace):
-        # type: (str) -> NamespaceItem
+    def from_json(cls, json_namespace, tag_filter_func=None):
+        # type: (str, Optional[Callable]) -> NamespaceItem
 
         if not json_namespace:
             raise ExperimentValidateError("json_namespace required.")
 
         namespace_spec = simplejson.loads(json_namespace)
-        return cls.from_dict(namespace_spec)
+        return cls.from_dict(namespace_spec, tag_filter_func=tag_filter_func)
 
     @classmethod
-    def from_dict(cls, data):
-        # type: (Dict[str, Any]) -> NamespaceItem
+    def from_dict(cls, data, tag_filter_func=None):
+        # type: (Dict[str, Any], Optional[Callable]) -> NamespaceItem
         return cls(
             name=data['name'],
             bucket=int(data.get('bucket', 10)),
-            experiment_items=[ExperimentItem.from_dict(spec) for spec in data['experiment_items']]
+            experiment_items=[ExperimentItem.from_dict(spec, tag_filter_func) for spec in data['experiment_items']],
         )
 
 
 class ExperimentItem(object):
     """实验类"""
 
-    def __init__(self, name, bucket, group_items, pre_condition=None):
+    def __init__(self, name, bucket, group_items, pre_condition=None, tag_ids=None, tag_filter_func=None):
         self.name = name
         self.bucket = bucket
         self.group_items = group_items
         self.pre_condition = pre_condition
+        self.tag_ids = tag_ids or []
+        self.tag_filter_type = UserTagFilterType.AND    # 多个 tag_ids 为 and 关系
+        self.tag_filter_func = tag_filter_func
 
         self.validate()
 
@@ -218,13 +241,15 @@ class ExperimentItem(object):
             raise ExperimentValidateError("实验({}) 分组的 weight 总数不为 1".format(self.name))
 
     @classmethod
-    def from_dict(cls, data):
-        # type: (Dict[str, Any]) -> ExperimentItem
+    def from_dict(cls, data, tag_filter_func=None):
+        # type: (Dict[str, Any], Optional[Callable]) -> ExperimentItem
         return cls(
             name=data['name'],
             bucket=int(data['bucket']),
             group_items=[GroupItem.from_dict(spec) for spec in data['group_items']],
-            pre_condition=eval(data['pre_condition']) if data.get('pre_condition') else None
+            pre_condition=eval(data['pre_condition']) if data.get('pre_condition') else None,
+            tag_filter_func=tag_filter_func,
+            tag_ids=[int(i) for i in data.get('tag_ids', [])]
         )
 
 
