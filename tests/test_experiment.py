@@ -228,9 +228,56 @@ namespace_spec_dict = {
 }
 
 
-HomepageNamespace2 = NamespaceItem.from_dict(namespace_spec_dict)
+def tag_filter(tag_id, device_id, **ignored):
+    return device_id % 2 == 0
 
-client = ExperimentGroupClient([HomepageNamespace, HomepageNamespace2])
+
+test_tag_namespace_spec_dict = dict(
+    name="tag_spec",
+    experiment_items=[
+        dict(name="t1", bucket=10, group_items=[
+            dict(name="g1", weight=1, layer_namespaces=[
+                dict(name="nn1", experiment_items=[dict(
+                    name="nn1e", bucket=10, tag_ids=[12], group_items=[
+                        dict(name="ngg", weight=0.5),
+                        dict(name="ngt", weight=0.5),
+                    ]
+                )]),
+                dict(name="nn2", experiment_items=[dict(
+                    name="nn2e", bucket=10, tag_ids=[11], group_items=[
+                        dict(name="nag", weight=0.5),
+                        dict(name="nat", weight=0.5),
+                    ]
+                )]),
+            ])
+        ])
+    ]
+)
+
+TestTagNamespace = NamespaceItem(name="tag_it", experiment_items=[
+    ExperimentItem(name="e1", bucket=10, group_items=[
+        GroupItem(name="g", weight=1, layer_namespaces=[
+            NamespaceItem(name="n1", experiment_items=[ExperimentItem(
+                name="n1e", bucket=10, tag_ids=[2], tag_filter_func=tag_filter, group_items=[
+                    GroupItem(name="gg", weight=0.5),
+                    GroupItem(name="gt", weight=0.5),
+                ]
+            )]),
+            NamespaceItem(name="n2", experiment_items=[ExperimentItem(
+                name="n2e", bucket=10, tag_ids=[3], tag_filter_func=tag_filter, group_items=[
+                    GroupItem(name="ag", weight=0.5),
+                    GroupItem(name="at", weight=0.5),
+                ]
+            )]),
+        ])
+    ])
+])
+
+
+HomepageNamespace2 = NamespaceItem.from_dict(namespace_spec_dict)
+TestTagNamespace2 = NamespaceItem.from_dict(test_tag_namespace_spec_dict, tag_filter_func=tag_filter)
+
+client = ExperimentGroupClient([HomepageNamespace, HomepageNamespace2, TestTagNamespace, TestTagNamespace2])
 
 
 def test_experiment_group_client():
@@ -281,3 +328,10 @@ def test_experiment_context():
     experiment_context.release()
     with client.auto_group_by_device_id("namespace_1", user_id=1, track=False) as group:
         assert group is None
+
+
+def test_experiment_tag():
+    group = client.get_tracking_group("tag_it", 10, device_id=10)
+    group2 = client.get_tracking_group("tag_spec", 10, device_id=10)
+    assert (group.experiment_trace(), group.group_trace()) == ("e1.n1e", "g.gt")
+    assert (group2.experiment_trace(), group2.group_trace()) == ("t1.nn1e", "g1.ngg")
