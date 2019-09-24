@@ -8,7 +8,7 @@ from planout.experiment import DefaultExperiment
 from planout.namespace import SimpleNamespace
 from planout.ops.random import WeightedChoice
 
-from .const import GroupResultType
+from .const import GroupResultType, UserTagFilterType
 from .exceptions import ExperimentGroupNotFindError, ExperimentValidateError
 
 
@@ -109,7 +109,7 @@ class NamespaceItem(object):
             raise ValueError("Namespace name and experiment_items required.")
 
         self.name = name
-        self.experiment_items = experiment_items
+        self.experiment_items = experiment_items    # type: List[ExperimentItem]
         self.bucket = bucket
         self.unit = unit
 
@@ -140,10 +140,30 @@ class NamespaceItem(object):
         valid_experiment_items = []
         for experiment_item in self.experiment_items:
             if callable(experiment_item.pre_condition):
-                if experiment_item.pre_condition(**params):
-                    valid_experiment_items.append(experiment_item)
-            else:
-                valid_experiment_items.append(experiment_item)
+                if not experiment_item.pre_condition(**params):
+                    continue
+
+            if experiment_item.tag_ids and experiment_item.tag_filter_func:
+                res = None
+                # 多个标签为 AND 关系
+                if experiment_item.tag_filter_type == UserTagFilterType.AND:
+                    res = True
+                    for tag_id in experiment_item.tag_ids:
+                        res &= experiment_item.tag_filter_func(tag_id, **params)
+                        if not res:
+                            break
+                # 多个标签为 OR 关系
+                elif experiment_item.tag_filter_type == UserTagFilterType.OR:
+                    res = False
+                    for tag_id in experiment_item.tag_ids:
+                        res |= experiment_item.tag_filter_func(tag_id, **params)
+                        if res:
+                            break
+
+                if not res:
+                    continue
+
+            valid_experiment_items.append(experiment_item)
 
         if not valid_experiment_items:
             return None
@@ -198,11 +218,14 @@ class NamespaceItem(object):
 class ExperimentItem(object):
     """实验类"""
 
-    def __init__(self, name, bucket, group_items, pre_condition=None):
+    def __init__(self, name, bucket, group_items, pre_condition=None, tag_ids=None, tag_filter_func=None):
         self.name = name
         self.bucket = bucket
         self.group_items = group_items
         self.pre_condition = pre_condition
+        self.tag_ids = tag_ids or []
+        self.tag_filter_type = UserTagFilterType.AND    # 多个 tag_ids 为 and 关系
+        self.tag_filter_func = tag_filter_func
 
         self.validate()
 
