@@ -1,5 +1,5 @@
 # coding: utf-8
-
+from collections import namedtuple
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Optional
 
@@ -143,20 +143,28 @@ class NamespaceItem(object):
                 if not experiment_item.pre_condition(**params):
                     continue
 
-            if experiment_item.tag_ids and experiment_item.tag_filter_func:
+            if experiment_item.user_tags and experiment_item.tag_filter_func:
                 res = None
                 # 多个标签为 AND 关系
                 if experiment_item.tag_filter_type == UserTagFilterType.AND:
                     res = True
-                    for tag_id in experiment_item.tag_ids:
-                        res &= experiment_item.tag_filter_func(tag_id, **params)
+                    for user_tag in experiment_item.user_tags:
+                        _res = experiment_item.tag_filter_func(user_tag.tag_id, tag_columns=user_tag.columns, **params)
+                        if user_tag.not_in:
+                            _res = not _res
+
+                        res &= _res
                         if not res:
                             break
                 # 多个标签为 OR 关系
                 elif experiment_item.tag_filter_type == UserTagFilterType.OR:
                     res = False
-                    for tag_id in experiment_item.tag_ids:
-                        res |= experiment_item.tag_filter_func(tag_id, **params)
+                    for user_tag in experiment_item.user_tags:
+                        _res = experiment_item.tag_filter_func(user_tag.tag_id, tag_columns=user_tag.columns, **params)
+                        if user_tag.not_in:
+                            _res = not _res
+
+                        res |= _res
                         if res:
                             break
 
@@ -218,14 +226,18 @@ class NamespaceItem(object):
 class ExperimentItem(object):
     """实验类"""
 
-    def __init__(self, name, bucket, group_items, pre_condition=None, tag_ids=None, tag_filter_func=None):
+    def __init__(self, name, bucket, group_items, pre_condition=None, user_tags=None, tag_filter_func=None):
         self.name = name
         self.bucket = bucket
         self.group_items = group_items
         self.pre_condition = pre_condition
-        self.tag_ids = tag_ids or []
         self.tag_filter_type = UserTagFilterType.AND    # 多个 tag_ids 为 and 关系
         self.tag_filter_func = tag_filter_func
+
+        try:
+            self.user_tags = self._parse_user_tag(user_tags)
+        except Exception as e:
+            raise ExperimentValidateError("实验({})标签格式错误:{}".format(self.name, str(e)))
 
         self.validate()
 
@@ -249,8 +261,28 @@ class ExperimentItem(object):
             group_items=[GroupItem.from_dict(spec) for spec in data['group_items']],
             pre_condition=eval(data['pre_condition']) if data.get('pre_condition') else None,
             tag_filter_func=tag_filter_func,
-            tag_ids=[int(i) for i in data.get('tag_ids', [])]
+            user_tags=data.get('user_tags', []),
         )
+
+    @classmethod
+    def _parse_user_tag(cls, user_tags):
+        """解析 user_tags 信息
+
+        :param user_tags: 实验指定的用户标签
+        """
+        UserTag = namedtuple("UserTag", ["tag_id", "columns", "not_in"])
+        if not user_tags:
+            return []
+
+        res = []
+        for user_tag in user_tags:
+            res.append(UserTag(
+                tag_id=user_tag['id'],
+                columns=user_tag['columns'],
+                not_in=user_tag.get('not_in', False)    # not_in 表示该标签的互斥，不在该标签里
+            ))
+
+        return res
 
 
 class GroupItem(object):
