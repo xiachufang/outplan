@@ -122,7 +122,7 @@ class ExperimentGroupClient(object):
         try:
             device_id = experiment_context.device_id
             yield self.get_group(namespace_name, unit=device_id, device_id=device_id, **params)
-        except AttributeError as e:
+        except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
                 self.logger.error(
@@ -136,7 +136,7 @@ class ExperimentGroupClient(object):
         try:
             user_id = experiment_context.user_id
             yield self.get_group(namespace_name, unit=user_id, user_id=user_id, **params)
-        except AttributeError as e:
+        except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
                 self.logger.error(
