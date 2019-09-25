@@ -238,13 +238,13 @@ test_tag_namespace_spec_dict = dict(
         dict(name="t1", bucket=10, group_items=[
             dict(name="g1", weight=1, layer_namespaces=[
                 dict(name="nn1", experiment_items=[dict(
-                    name="nn1e", bucket=10, tag_ids=[12], group_items=[
+                    name="nn1e", bucket=10, user_tags=[dict(id=12, columns=['user_id'])], group_items=[
                         dict(name="ngg", weight=0.5),
                         dict(name="ngt", weight=0.5),
                     ]
                 )]),
                 dict(name="nn2", experiment_items=[dict(
-                    name="nn2e", bucket=10, tag_ids=[11], group_items=[
+                    name="nn2e", bucket=10, user_tags=[dict(id=11, columns=['user_id'])], group_items=[
                         dict(name="nag", weight=0.5),
                         dict(name="nat", weight=0.5),
                     ]
@@ -258,13 +258,13 @@ TestTagNamespace = NamespaceItem(name="tag_it", experiment_items=[
     ExperimentItem(name="e1", bucket=10, group_items=[
         GroupItem(name="g", weight=1, layer_namespaces=[
             NamespaceItem(name="n1", experiment_items=[ExperimentItem(
-                name="n1e", bucket=10, tag_ids=[2], tag_filter_func=tag_filter, group_items=[
+                name="n1e", bucket=10, user_tags=[dict(id=2, columns=['user_id'])], tag_filter_func=tag_filter, group_items=[
                     GroupItem(name="gg", weight=0.5),
                     GroupItem(name="gt", weight=0.5),
                 ]
             )]),
             NamespaceItem(name="n2", experiment_items=[ExperimentItem(
-                name="n2e", bucket=10, tag_ids=[3], tag_filter_func=tag_filter, group_items=[
+                name="n2e", bucket=10, user_tags=[dict(id=3, columns=['user_id'])], tag_filter_func=tag_filter, group_items=[
                     GroupItem(name="ag", weight=0.5),
                     GroupItem(name="at", weight=0.5),
                 ]
