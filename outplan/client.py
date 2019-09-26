@@ -132,6 +132,32 @@ class ExperimentGroupClient(object):
             yield None
 
     @contextmanager
+    def auto_tracking_group_by_device_id(self, namespace_name, **params):
+        try:
+            device_id = experiment_context.device_id
+            yield self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
+        except Exception as e:
+            if self.logger:
+                self.logger.error(
+                    "auto_tracking_group error: namespace_name: {}, msg: {}, params: {}",
+                    namespace_name, str(e), simplejson.dumps(params)
+                )
+            yield None
+
+    @contextmanager
+    def auto_tracking_group_by_user_id(self, namespace_name, **params):
+        try:
+            user_id = experiment_context.user_id
+            yield self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id, **params)
+        except Exception as e:
+            if self.logger:
+                self.logger.error(
+                    "auto_tracking_group error: namespace_name: {}, msg: {}, params: {}",
+                    namespace_name, str(e), simplejson.dumps(params)
+                )
+            yield None
+
+    @contextmanager
     def auto_group_by_user_id(self, namespace_name, **params):
         try:
             user_id = experiment_context.user_id
