@@ -228,7 +228,7 @@ namespace_spec_dict = {
 }
 
 
-def tag_filter(tag_id, device_id, **ignored):
+def tag_filter(experiment_name, tag_id, device_id, **ignored):
     return device_id % 2 == 0
 
 
