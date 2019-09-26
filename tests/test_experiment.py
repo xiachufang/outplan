@@ -304,6 +304,9 @@ def test_experiment_group_client():
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_ctl_2', 'h_ctl_2')
     assert group.group_extra_params == "hahaha"
 
+    group = client.get_tracking_group_by_group_name('namespace_2', 'h_ctl_2')
+    assert group.group_extra_params == "hahaha"
+
 
 def test_lazy_load_namespace():
     def lazy_load_it(namespace):

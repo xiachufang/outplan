@@ -8,7 +8,7 @@ import simplejson
 
 from .const import ONE_MINUTE
 from .exceptions import ExperimentValidateError
-from .experiment import NamespaceItem
+from .experiment import NamespaceItem, TrackingGroup
 from .local import experiment_context
 
 
@@ -41,7 +41,7 @@ class ExperimentGroupClient(object):
             names.add(namespace.name)
 
     def get_namespace_item(self, namespace_name):
-        # type: (str,) -> NamespaceItem
+        # type: (str) -> NamespaceItem
         if namespace_name in self.namespaces:
             return self.namespaces[namespace_name]
 
@@ -87,6 +87,18 @@ class ExperimentGroupClient(object):
 
     def get_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
         return self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params).group_names[0]
+
+    def get_tracking_group_by_group_name(self, namespace_name, group_name):
+        # type: (str, str) -> Any
+        """ 根据实验组名获取tracking_group """
+        namespace_item = self.get_namespace_item(namespace_name)  # type: NamespaceItem
+        group = namespace_item.get_group_by_name(group_name)
+        if group:
+            return TrackingGroup(
+                group_name=group.name,
+                experiment_name="",
+                group_extra_params=group.extra_params
+            )
 
     def add_namespace(self, namespace_item):
         # type: (NamespaceItem) -> None
