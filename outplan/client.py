@@ -121,7 +121,7 @@ class ExperimentGroupClient(object):
         """
         try:
             device_id = experiment_context.device_id
-            yield self.get_group(namespace_name, unit=device_id, device_id=device_id, **params)
+            yield self.get_group(namespace_name, unit=device_id, pdid=device_id, **params)
         except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
