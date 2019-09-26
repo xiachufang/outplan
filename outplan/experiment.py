@@ -149,7 +149,7 @@ class NamespaceItem(object):
                 if experiment_item.tag_filter_type == UserTagFilterType.AND:
                     res = True
                     for user_tag in experiment_item.user_tags:
-                        _res = experiment_item.tag_filter_func(user_tag.tag_id, tag_columns=user_tag.columns, **params)
+                        _res = experiment_item.tag_filter_func(experiment_item.name, user_tag.tag_id, user_tag_columns=user_tag.columns, **params)
                         if user_tag.not_in:
                             _res = not _res
 
@@ -160,7 +160,7 @@ class NamespaceItem(object):
                 elif experiment_item.tag_filter_type == UserTagFilterType.OR:
                     res = False
                     for user_tag in experiment_item.user_tags:
-                        _res = experiment_item.tag_filter_func(user_tag.tag_id, tag_columns=user_tag.columns, **params)
+                        _res = experiment_item.tag_filter_func(experiment_item.name, user_tag.tag_id, user_tag_columns=user_tag.columns, **params)
                         if user_tag.not_in:
                             _res = not _res
 
