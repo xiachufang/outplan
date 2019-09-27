@@ -17,8 +17,8 @@ class ExperimentGroupClient(object):
 
     def __init__(self, namespaces_items, lazy_load_namespaces=None, lazy_load_func=None,
                  tracking_client=None, logger=None,
-                 lazy_load_expire=10 * ONE_MINUTE):
-        # type: (List[NamespaceItem], Optional[List[str]], Callable, Any, Any, int) -> None
+                 lazy_load_expire=10 * ONE_MINUTE, get_group_hook=None):
+        # type: (List[NamespaceItem], Optional[List[str]], Callable, Any, Any, int, Callable) -> None
 
         self.namespaces_items = namespaces_items
         self.namespaces = {namespace.name: namespace for namespace in namespaces_items}
@@ -29,6 +29,7 @@ class ExperimentGroupClient(object):
         self._lazy_load_init_ts = {}    # type: Dict[str, int]  # 记录 lazy load 的 namespace 初始化时间，expire 之后重新 load
         self.lazy_load_namespace_items = {}     # type: Dict[str, NamespaceItem]
         self.lazy_load_func = lazy_load_func
+        self._get_group_hook = get_group_hook
 
         self.validate()
 
@@ -69,6 +70,12 @@ class ExperimentGroupClient(object):
     def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
         # type: (str, str, int, str, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
+
+        if callable(self._get_group_hook):
+            group = self._get_group_hook(experiment_context, namespace_name, user_id, pdid)
+            if group:
+                return self.get_tracking_group_by_group_name(namespace_name, group)
+
         namespace_item = self.get_namespace_item(namespace_name)
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
         if not track or not any([user_id, pdid]) or not self.tracking_client:
@@ -107,11 +114,13 @@ class ExperimentGroupClient(object):
 
         self.namespaces[namespace_item.name] = namespace_item
 
-    def setup_experiment_context(self, user_id=None, device_id=None, origin=None, version=None):
+    def setup_experiment_context(self, user_id=None, device_id=None, origin=None, version=None, **kwargs):
         experiment_context.user_id = user_id
         experiment_context.device_id = device_id
         experiment_context.origin = origin
         experiment_context.version = version
+
+        experiment_context.update(kwargs)
 
     def release_context(self):
         experiment_context.release()
