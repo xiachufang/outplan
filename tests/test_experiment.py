@@ -359,9 +359,9 @@ def test_experiment_group_hook():
         assert context.admin is not None
         if context.admin and user_id == 1:
             return 'admin'
-    c = ExperimentGroupClient([GroupHookNamespace], get_group_hook=group_callback)
+    c = ExperimentGroupClient([GroupHookNamespace], get_specified_group_func=group_callback)
 
-    c.setup_experiment_context(admin=True)
+    c.setup_experiment_context(allow_specify_group=True, admin=True)
     group = c.get_tracking_group('group_hook_namespace', unit="12345", user_id=1, pdid='233', track=False)
     assert group.group_names[0] == 'admin'
 
