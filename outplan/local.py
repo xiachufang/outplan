@@ -73,6 +73,9 @@ class Local(object):
         except KeyError:
             raise AttributeError(name)
 
+    def update(self, items):
+        self.__storage__[self.__ident_func__()].update(items)
+
     def release(self):
         self.__storage__.pop(self.__ident_func__(), None)
 

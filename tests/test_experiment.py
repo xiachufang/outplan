@@ -81,6 +81,20 @@ HomepageNamespace = NamespaceItem(
     ]
 )
 
+GroupHookNamespace = NamespaceItem(
+    name="group_hook_namespace",
+    experiment_items=[
+        ExperimentItem(
+            name="group_hook",
+            bucket=10,
+            group_items=[
+                GroupItem(name="non_admin", weight=1),
+                GroupItem(name="admin", weight=0)
+            ]
+        )
+    ]
+)
+
 
 namespace_spec_dict = {
     "name": "namespace_2",
@@ -304,6 +318,9 @@ def test_experiment_group_client():
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_ctl_2', 'h_ctl_2')
     assert group.group_extra_params == "hahaha"
 
+    group = client.get_tracking_group_by_group_name('namespace_2', 'h_ctl_2')
+    assert group.group_extra_params == "hahaha"
+
 
 def test_lazy_load_namespace():
     def lazy_load_it(namespace):
@@ -335,3 +352,19 @@ def test_experiment_tag():
     group2 = client.get_tracking_group("tag_spec", 10, device_id=10)
     assert (group.experiment_trace(), group.group_trace()) == ("e1.n1e", "g.gt")
     assert (group2.experiment_trace(), group2.group_trace()) == ("t1.nn1e", "g1.ngg")
+
+
+def test_experiment_group_hook():
+    def group_callback(context, namespace, user_id, pdid):
+        assert context.admin is not None
+        if context.admin and user_id == 1:
+            return 'admin'
+    c = ExperimentGroupClient([GroupHookNamespace], get_specified_group_func=group_callback)
+
+    c.setup_experiment_context(allow_specify_group=True, admin=True)
+    group = c.get_tracking_group('group_hook_namespace', unit="12345", user_id=1, pdid='233', track=False)
+    assert group.group_names[0] == 'admin'
+
+    c.setup_experiment_context(admin=False)
+    group = c.get_tracking_group('group_hook_namespace', unit="12345", user_id=1, pdid="233", track=False)
+    assert group.group_names[0] != "admin"

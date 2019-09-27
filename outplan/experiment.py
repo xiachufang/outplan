@@ -136,6 +136,15 @@ class NamespaceItem(object):
         if len(group_names) != len(set(group_names)):
             raise ExperimentValidateError("实验({}) group name 重复".format(self.name))
 
+    def get_group_by_name(self, group_name):
+        # type: (str) -> Optional[GroupItem]
+        for experiment_item in self.experiment_items:
+            for group in experiment_item.group_items:
+                group_object = group.get_group_by_name(group_name)
+                if group_object:
+                    return group_object
+        return None
+
     def get_group(self, unit, **params):
         valid_experiment_items = []
         for experiment_item in self.experiment_items:
@@ -229,7 +238,7 @@ class ExperimentItem(object):
     def __init__(self, name, bucket, group_items, pre_condition=None, user_tags=None, tag_filter_func=None):
         self.name = name
         self.bucket = bucket
-        self.group_items = group_items
+        self.group_items = group_items                  # type: List[GroupItem]
         self.pre_condition = pre_condition
         self.tag_filter_type = UserTagFilterType.AND    # 多个 tag_ids 为 and 关系
         self.tag_filter_func = tag_filter_func
@@ -289,7 +298,7 @@ class GroupItem(object):
     def __init__(self, name, weight, layer_namespaces=None, extra_params=None):
         self.name = name
         self.weight = weight
-        self.layer_namespaces = layer_namespaces or []
+        self.layer_namespaces = layer_namespaces or []  # type: List[NamespaceItem]
         self.result_type = None
         self.extra_params = extra_params
 
@@ -324,6 +333,18 @@ class GroupItem(object):
             raise NotImplementedError()
 
         raise ExperimentGroupNotFindError("未找到分组")
+
+    def get_group_by_name(self, group_name):
+        # type: (str) -> Optional[GroupItem]
+        if self.result_type == GroupResultType.group:
+            if group_name == self.name:
+                return self
+        elif self.result_type == GroupResultType.layer:
+            for namespace in self.layer_namespaces:
+                _group = namespace.get_group_by_name(group_name)
+                if _group:
+                    return _group
+        return None
 
     @classmethod
     def from_dict(cls, data):
