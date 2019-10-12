@@ -339,8 +339,23 @@ def test_experiment_context():
     client.setup_experiment_context(user_id=1, device_id="12345")
     assert experiment_context.user_id == 1
     assert experiment_context.device_id == "12345"
+
+    class MockTracker():
+        times = 0
+
+        def track(self, *args, **kwargs):
+            MockTracker.times += 1
+
+    client.tracking_client = MockTracker()
+
     with client.auto_group_by_device_id("namespace_1", user_id=1, track=False) as group:
         assert group == "c9-a0"
+
+    with client.auto_group_by_device_id("namespace_1", cache=False, track=True) as group:
+        assert group == "c9-a0"
+    with client.auto_group_by_device_id("namespace_1", cache=True, track=True) as group:
+        assert group == "c9-a0"
+    assert MockTracker.times == 1
 
     experiment_context.release()
     with client.auto_group_by_device_id("namespace_1", user_id=1, track=False) as group:

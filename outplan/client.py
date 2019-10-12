@@ -125,13 +125,15 @@ class ExperimentGroupClient(object):
         experiment_context.version = version
         experiment_context.allow_specify_group = allow_specify_group
 
+        experiment_context.cache = {}       # 在一次请求生命周期内用于缓存分组结果
+
         experiment_context.update(kwargs)
 
     def release_context(self):
         experiment_context.release()
 
     @contextmanager
-    def auto_group_by_device_id(self, namespace_name, **params):
+    def auto_group_by_device_id(self, namespace_name, cache=False, **params):
         """使用 experiment_context 自动取设备 ID 分组。
 
         Example:
@@ -147,7 +149,14 @@ class ExperimentGroupClient(object):
         """
         try:
             device_id = experiment_context.device_id
-            yield self.get_group(namespace_name, unit=device_id, pdid=device_id, **params)
+            key = "device_id_tracking_group{%s}" % device_id
+
+            if not cache or key not in experiment_context.cache:
+
+                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
+
+            yield experiment_context.cache[key].group_names[0]
+
         except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
@@ -158,10 +167,14 @@ class ExperimentGroupClient(object):
             yield None
 
     @contextmanager
-    def auto_tracking_group_by_device_id(self, namespace_name, **params):
+    def auto_tracking_group_by_device_id(self, namespace_name, cache=False, **params):
         try:
             device_id = experiment_context.device_id
-            yield self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
+            key = "device_id_tracking_group{%s}" % device_id
+            if not cache or key not in experiment_context.cache:
+                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
+
+            yield experiment_context.cache[key]
         except Exception as e:
             if self.logger:
                 self.logger.error(
@@ -171,10 +184,18 @@ class ExperimentGroupClient(object):
             yield None
 
     @contextmanager
-    def auto_tracking_group_by_user_id(self, namespace_name, **params):
+    def auto_tracking_group_by_user_id(self, namespace_name, cache=False, **params):
         try:
             user_id = experiment_context.user_id
-            yield self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id, **params)
+
+            key = "user_id_tracking_group{%s}" % user_id
+
+            if not cache or key not in experiment_context.cache:
+                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, pdid=user_id,
+                                                                        **params)
+
+            yield experiment_context.cache[key]
+
         except Exception as e:
             if self.logger:
                 self.logger.error(
@@ -184,10 +205,17 @@ class ExperimentGroupClient(object):
             yield None
 
     @contextmanager
-    def auto_group_by_user_id(self, namespace_name, **params):
+    def auto_group_by_user_id(self, namespace_name, cache=False, **params):
         try:
             user_id = experiment_context.user_id
-            yield self.get_group(namespace_name, unit=user_id, user_id=user_id, **params)
+
+            key = "user_id_tracking_group{%s}" % user_id
+
+            if not cache or key not in experiment_context.cache:
+                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, pdid=user_id,
+                                                                        **params)
+
+            yield experiment_context.cache[key].group_names[0]
         except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
