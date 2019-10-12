@@ -67,33 +67,43 @@ class ExperimentGroupClient(object):
         self._lazy_load_init_ts[namespace_name] = int(time.time())
         return self.lazy_load_namespace_items[namespace_name]
 
-    def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
-        # type: (str, str, int, str, bool, Dict[Any, Any]) -> Any
+    def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, cache=True, **params):
+        # type: (str, str, int, str, bool, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
         try:
             allow_specify_group = experiment_context.allow_specify_group
         except AttributeError:
             allow_specify_group = False
+        try:
+            cached_group = experiment_context.cached_group
+        except AttributeError:
+            cached_group = {}
+
         if allow_specify_group and callable(self._get_specified_group_func):
             group = self._get_specified_group_func(experiment_context, namespace_name, user_id, pdid)
             if group:
                 return self.get_tracking_group_by_group_name(namespace_name, group)
 
         namespace_item = self.get_namespace_item(namespace_name)
-        tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
-        if not track or not any([user_id, pdid]) or not self.tracking_client:
-            return tracking_group
 
-        self.tracking_client.track(
-            user_id=user_id or 0,
-            pdid=pdid or "",
-            event_name="user_experiment_group_info",
-            properties=dict(
-                experiment=tracking_group.experiment_trace(),
-                group=tracking_group.group_trace(),
+        key = "tracking_group{%s}{%s}{%s}" % (namespace_name, user_id, pdid)
+
+        if not cache or key not in cached_group:
+            tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
+            cached_group[key] = tracking_group
+            if not track or not any([user_id, pdid]) or not self.tracking_client:
+                return tracking_group
+
+            self.tracking_client.track(
+                user_id=user_id or 0,
+                pdid=pdid or "",
+                event_name="user_experiment_group_info",
+                properties=dict(
+                    experiment=tracking_group.experiment_trace(),
+                    group=tracking_group.group_trace(),
+                )
             )
-        )
-        return tracking_group
+        return cached_group[key]
 
     def get_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
         return self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params).group_names[0]
@@ -125,7 +135,7 @@ class ExperimentGroupClient(object):
         experiment_context.version = version
         experiment_context.allow_specify_group = allow_specify_group
 
-        experiment_context.cache = {}       # 在一次请求生命周期内用于缓存分组结果
+        experiment_context.cached_group = {}       # 在一次请求生命周期内用于缓存分组结果
 
         experiment_context.update(kwargs)
 
@@ -133,7 +143,7 @@ class ExperimentGroupClient(object):
         experiment_context.release()
 
     @contextmanager
-    def auto_group_by_device_id(self, namespace_name, cache=False, **params):
+    def auto_group_by_device_id(self, namespace_name, **params):
         """使用 experiment_context 自动取设备 ID 分组。
 
         Example:
@@ -149,13 +159,7 @@ class ExperimentGroupClient(object):
         """
         try:
             device_id = experiment_context.device_id
-            key = "device_id_tracking_group{%s}" % device_id
-
-            if not cache or key not in experiment_context.cache:
-
-                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
-
-            yield experiment_context.cache[key].group_names[0]
+            yield self.get_group(namespace_name, unit=device_id, pdid=device_id, **params)
 
         except Exception as e:
             # 这里需要被 fallback 到 control 组
@@ -167,34 +171,10 @@ class ExperimentGroupClient(object):
             yield None
 
     @contextmanager
-    def auto_tracking_group_by_device_id(self, namespace_name, cache=False, **params):
+    def auto_tracking_group_by_device_id(self, namespace_name, **params):
         try:
             device_id = experiment_context.device_id
-            key = "device_id_tracking_group{%s}" % device_id
-            if not cache or key not in experiment_context.cache:
-                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
-
-            yield experiment_context.cache[key]
-        except Exception as e:
-            if self.logger:
-                self.logger.error(
-                    "auto_tracking_group error: namespace_name: {}, msg: {}, params: {}",
-                    namespace_name, str(e), simplejson.dumps(params)
-                )
-            yield None
-
-    @contextmanager
-    def auto_tracking_group_by_user_id(self, namespace_name, cache=False, **params):
-        try:
-            user_id = experiment_context.user_id
-
-            key = "user_id_tracking_group{%s}" % user_id
-
-            if not cache or key not in experiment_context.cache:
-                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id,
-                                                                        **params)
-
-            yield experiment_context.cache[key]
+            yield self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
 
         except Exception as e:
             if self.logger:
@@ -205,17 +185,26 @@ class ExperimentGroupClient(object):
             yield None
 
     @contextmanager
-    def auto_group_by_user_id(self, namespace_name, cache=False, **params):
+    def auto_tracking_group_by_user_id(self, namespace_name, **params):
         try:
             user_id = experiment_context.user_id
 
-            key = "user_id_tracking_group{%s}" % user_id
+            yield self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id,
+                                          **params)
+        except Exception as e:
+            if self.logger:
+                self.logger.error(
+                    "auto_tracking_group error: namespace_name: {}, msg: {}, params: {}",
+                    namespace_name, str(e), simplejson.dumps(params)
+                )
+            yield None
 
-            if not cache or key not in experiment_context.cache:
-                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id,
-                                                                        **params)
-
-            yield experiment_context.cache[key].group_names[0]
+    @contextmanager
+    def auto_group_by_user_id(self, namespace_name, **params):
+        try:
+            user_id = experiment_context.user_id
+            yield self.get_group(namespace_name, unit=user_id, user_id=user_id,
+                                 **params)
         except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
