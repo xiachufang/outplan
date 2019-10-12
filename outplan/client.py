@@ -191,7 +191,7 @@ class ExperimentGroupClient(object):
             key = "user_id_tracking_group{%s}" % user_id
 
             if not cache or key not in experiment_context.cache:
-                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, pdid=user_id,
+                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id,
                                                                         **params)
 
             yield experiment_context.cache[key]
@@ -212,7 +212,7 @@ class ExperimentGroupClient(object):
             key = "user_id_tracking_group{%s}" % user_id
 
             if not cache or key not in experiment_context.cache:
-                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, pdid=user_id,
+                experiment_context.cache[key] = self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id,
                                                                         **params)
 
             yield experiment_context.cache[key].group_names[0]

@@ -351,9 +351,9 @@ def test_experiment_context():
     with client.auto_group_by_device_id("namespace_1", user_id=1, track=False) as group:
         assert group == "c9-a0"
 
-    with client.auto_group_by_device_id("namespace_1", cache=False, track=True) as group:
+    with client.auto_group_by_device_id("namespace_1", cache=False, user_id=1, track=True) as group:
         assert group == "c9-a0"
-    with client.auto_group_by_device_id("namespace_1", cache=True, track=True) as group:
+    with client.auto_group_by_device_id("namespace_1", cache=True, user_id=1, track=True) as group:
         assert group == "c9-a0"
     assert MockTracker.times == 1
 
