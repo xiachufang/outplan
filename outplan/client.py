@@ -88,22 +88,24 @@ class ExperimentGroupClient(object):
 
         key = "tracking_group{%s}{%s}{%s}" % (namespace_name, user_id, pdid)
 
-        if not cache or key not in cached_group:
-            tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
-            cached_group[key] = tracking_group
-            if not track or not any([user_id, pdid]) or not self.tracking_client:
-                return tracking_group
+        if cache and key in cached_group:
+            return cached_group[key]
 
-            self.tracking_client.track(
-                user_id=user_id or 0,
-                pdid=pdid or "",
-                event_name="user_experiment_group_info",
-                properties=dict(
-                    experiment=tracking_group.experiment_trace(),
-                    group=tracking_group.group_trace(),
-                )
+        tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
+        cached_group[key] = tracking_group
+        if not track or not any([user_id, pdid]) or not self.tracking_client:
+            return tracking_group
+
+        self.tracking_client.track(
+            user_id=user_id or 0,
+            pdid=pdid or "",
+            event_name="user_experiment_group_info",
+            properties=dict(
+                experiment=tracking_group.experiment_trace(),
+                group=tracking_group.group_trace(),
             )
-        return cached_group[key]
+        )
+        return tracking_group
 
     def get_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
         return self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params).group_names[0]
