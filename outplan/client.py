@@ -67,20 +67,32 @@ class ExperimentGroupClient(object):
         self._lazy_load_init_ts[namespace_name] = int(time.time())
         return self.lazy_load_namespace_items[namespace_name]
 
-    def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
-        # type: (str, str, int, str, bool, Dict[Any, Any]) -> Any
+    def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, cache=True, **params):
+        # type: (str, str, int, str, bool, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
         try:
             allow_specify_group = experiment_context.allow_specify_group
         except AttributeError:
             allow_specify_group = False
+        try:
+            cached_group = experiment_context.cached_group
+        except AttributeError:
+            cached_group = {}
+
         if allow_specify_group and callable(self._get_specified_group_func):
             group = self._get_specified_group_func(experiment_context, namespace_name, user_id, pdid)
             if group:
                 return self.get_tracking_group_by_group_name(namespace_name, group)
 
         namespace_item = self.get_namespace_item(namespace_name)
+
+        key = "tracking_group{%s}{%s}" % (namespace_name, unit)
+
+        if cache and key in cached_group:
+            return cached_group[key]
+
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
+        cached_group[key] = tracking_group
         if not track or not any([user_id, pdid]) or not self.tracking_client:
             return tracking_group
 
@@ -125,6 +137,8 @@ class ExperimentGroupClient(object):
         experiment_context.version = version
         experiment_context.allow_specify_group = allow_specify_group
 
+        experiment_context.cached_group = {}       # 在一次请求生命周期内用于缓存分组结果
+
         experiment_context.update(kwargs)
 
     def release_context(self):
@@ -148,6 +162,7 @@ class ExperimentGroupClient(object):
         try:
             device_id = experiment_context.device_id
             yield self.get_group(namespace_name, unit=device_id, pdid=device_id, **params)
+
         except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
@@ -162,6 +177,7 @@ class ExperimentGroupClient(object):
         try:
             device_id = experiment_context.device_id
             yield self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
+
         except Exception as e:
             if self.logger:
                 self.logger.error(
@@ -174,7 +190,9 @@ class ExperimentGroupClient(object):
     def auto_tracking_group_by_user_id(self, namespace_name, **params):
         try:
             user_id = experiment_context.user_id
-            yield self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id, **params)
+
+            yield self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id,
+                                          **params)
         except Exception as e:
             if self.logger:
                 self.logger.error(
@@ -187,7 +205,8 @@ class ExperimentGroupClient(object):
     def auto_group_by_user_id(self, namespace_name, **params):
         try:
             user_id = experiment_context.user_id
-            yield self.get_group(namespace_name, unit=user_id, user_id=user_id, **params)
+            yield self.get_group(namespace_name, unit=user_id, user_id=user_id,
+                                 **params)
         except Exception as e:
             # 这里需要被 fallback 到 control 组
             if self.logger:
