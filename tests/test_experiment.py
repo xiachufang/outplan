@@ -370,7 +370,7 @@ def test_experiment_tag():
 
 
 def test_experiment_group_hook():
-    def group_callback(context, namespace, user_id, pdid):
+    def group_callback(context, namespace, uint, user_id, pdid):
         assert context.admin is not None
         if context.admin and user_id == 1:
             return 'admin'
