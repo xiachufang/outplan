@@ -86,7 +86,7 @@ class ExperimentGroupClient(object):
 
         namespace_item = self.get_namespace_item(namespace_name)
 
-        key = "tracking_group{%s}{%s}{%s}" % (namespace_name, user_id, pdid)
+        key = "tracking_group{%s}{%s}" % (namespace_name, unit)
 
         if cache and key in cached_group:
             return cached_group[key]
