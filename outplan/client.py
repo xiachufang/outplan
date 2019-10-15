@@ -92,6 +92,9 @@ class ExperimentGroupClient(object):
             return cached_group[key]
 
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
+        if not tracking_group:
+            return None
+
         cached_group[key] = tracking_group
         if not track or not any([user_id, pdid]) or not self.tracking_client:
             return tracking_group
