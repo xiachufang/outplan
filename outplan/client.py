@@ -80,7 +80,7 @@ class ExperimentGroupClient(object):
             cached_group = {}
 
         if allow_specify_group and callable(self._get_specified_group_func):
-            group = self._get_specified_group_func(experiment_context, namespace_name, user_id, pdid)
+            group = self._get_specified_group_func(experiment_context, namespace_name, unit, user_id=user_id, pdid=pdid, **params)
             if group:
                 return self.get_tracking_group_by_group_name(namespace_name, group)
 
