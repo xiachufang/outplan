@@ -111,7 +111,11 @@ class ExperimentGroupClient(object):
         return tracking_group
 
     def get_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
-        return self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params).group_names[0]
+        tracking_group = self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params)
+        if not tracking_group:
+            return None
+
+        return tracking_group.last_group
 
     def get_tracking_group_by_group_name(self, namespace_name, group_name):
         # type: (str, str) -> Any
