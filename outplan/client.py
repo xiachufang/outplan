@@ -82,7 +82,9 @@ class ExperimentGroupClient(object):
         if allow_specify_group and callable(self._get_specified_group_func):
             group = self._get_specified_group_func(experiment_context, namespace_name, unit, user_id=user_id, pdid=pdid, **params)
             if group:
-                return self.get_tracking_group_by_group_name(namespace_name, group)
+                _tracking_group = self.get_tracking_group_by_group_name(namespace_name, group)
+                if _tracking_group:
+                    return _tracking_group
 
         namespace_item = self.get_namespace_item(namespace_name)
 
