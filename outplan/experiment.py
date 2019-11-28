@@ -267,7 +267,7 @@ class ExperimentItem(object):
         return cls(
             name=data['name'],
             bucket=int(data['bucket']),
-            group_items=[GroupItem.from_dict(spec) for spec in data['group_items']],
+            group_items=[GroupItem.from_dict(spec, tag_filter_func=tag_filter_func) for spec in data['group_items']],
             pre_condition=eval(data['pre_condition']) if data.get('pre_condition') else None,
             tag_filter_func=tag_filter_func,
             user_tags=data.get('user_tags', []),
@@ -347,11 +347,11 @@ class GroupItem(object):
         return None
 
     @classmethod
-    def from_dict(cls, data):
-        # type: (Dict[str, Any]) -> GroupItem
+    def from_dict(cls, data, tag_filter_func=None):
+        # type: (Dict[str, Any], Optional[Callable]) -> GroupItem
         return cls(
             name=data['name'],
             weight=float(data['weight']),
-            layer_namespaces=[NamespaceItem.from_dict(spec) for spec in data.get('layer_namespaces', [])],
+            layer_namespaces=[NamespaceItem.from_dict(spec, tag_filter_func=tag_filter_func) for spec in data.get('layer_namespaces', [])],
             extra_params=data.get('extra_params')
         )
