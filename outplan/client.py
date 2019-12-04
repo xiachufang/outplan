@@ -15,7 +15,7 @@ from .local import experiment_context
 class ExperimentGroupClient(object):
     """experiment group client"""
 
-    def __init__(self, namespaces_items, lazy_load_namespaces=None, lazy_load_func=None,
+    def __init__(self, namespaces_items, lazy_load_namespaces_func=None, lazy_load_namespace_item_func=None,
                  tracking_client=None, logger=None,
                  lazy_load_expire=10 * ONE_MINUTE, get_specified_group_func=None):
         # type: (List[NamespaceItem], Optional[List[str]], Callable, Any, Any, int, Callable) -> None
@@ -24,14 +24,33 @@ class ExperimentGroupClient(object):
         self.namespaces = {namespace.name: namespace for namespace in namespaces_items}
         self.tracking_client = tracking_client
         self.logger = logger
-        self.lazy_load_namespaces = lazy_load_namespaces or []
+        self.lazy_load_namespaces = []  # type: List[str]
         self.lazy_load_expire = lazy_load_expire
         self._lazy_load_init_ts = {}    # type: Dict[str, int]  # 记录 lazy load 的 namespace 初始化时间，expire 之后重新 load
         self.lazy_load_namespace_items = {}     # type: Dict[str, NamespaceItem]
-        self.lazy_load_func = lazy_load_func
+        self.lazy_load_namespace_item_func = lazy_load_namespace_item_func
         self._get_specified_group_func = get_specified_group_func
+        self.lazy_load_namespaces_func = lazy_load_namespaces_func
 
         self.validate()
+
+    def refresh_key_expire_time(self, key, timestamp=None):
+        """刷新过期时间"""
+        self._lazy_load_init_ts[key] = int(timestamp or time.time())
+
+    def is_key_expire(self, key):
+        if int(time.time()) - self._lazy_load_init_ts.get(key, 0) > self.lazy_load_expire:
+            return True
+
+        return False
+
+    def load_lazy_namespaces(self):
+        """加载有效的 namespaces"""
+        cache_key = "lazy_load_namespaces"
+        if self.is_key_expire(cache_key):
+            self.lazy_load_namespaces = self.lazy_load_namespaces_func() if self.lazy_load_namespaces_func else []
+
+        self.refresh_key_expire_time(cache_key)
 
     def validate(self):
         names = set()
@@ -46,25 +65,23 @@ class ExperimentGroupClient(object):
         if namespace_name in self.namespaces:
             return self.namespaces[namespace_name]
 
+        self.load_lazy_namespaces()
         if namespace_name not in self.lazy_load_namespaces:
             raise ExperimentValidateError("Namespace {} not found.".format(namespace_name))
 
-        if not self.lazy_load_func:
-            raise ExperimentValidateError("lazy_load_func not found")
+        if not self.lazy_load_namespace_item_func:
+            raise ExperimentValidateError("lazy_load_namespace_item_func not found")
 
         if namespace_name in self.lazy_load_namespaces and namespace_name in self.lazy_load_namespace_items:
-            namespace_item_init_timestamp = self._lazy_load_init_ts.get(namespace_name, 0)
-            now = int(time.time())
-
-            if (now - namespace_item_init_timestamp) < self.lazy_load_expire:
+            if self.is_key_expire(namespace_name):
                 return self.lazy_load_namespace_items[namespace_name]
 
-        _ns = self.lazy_load_func(namespace_name)
+        _ns = self.lazy_load_namespace_item_func(namespace_name)
         if not _ns:
             raise ExperimentValidateError("Namespace {} not found".format(namespace_name))
 
         self.lazy_load_namespace_items[namespace_name] = _ns
-        self._lazy_load_init_ts[namespace_name] = int(time.time())
+        self.refresh_key_expire_time(namespace_name)
         return self.lazy_load_namespace_items[namespace_name]
 
     def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, cache=True, **params):
