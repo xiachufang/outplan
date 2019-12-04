@@ -333,6 +333,11 @@ def test_lazy_load_namespace():
     group = c.get_tracking_group('namespace_2', unit="12345", user_id=1, track=False)
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p9_2', 'collect_2.c9-a1-2')
 
+    # flush cache
+    c._lazy_load_init_ts = {}
+    group = c.get_tracking_group('namespace_2', unit="123456", user_id=1, track=False)
+    assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p9_2', 'collect_2.c9-a1-2')
+
     with pytest.raises(ExperimentValidateError):
         c.get_tracking_group('namespace_4', unit="12345", user_id=1, track=False)
 
