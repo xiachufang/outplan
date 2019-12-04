@@ -39,7 +39,7 @@ class ExperimentGroupClient(object):
         self._lazy_load_init_ts[key] = int(timestamp or time.time())
 
     def is_key_expire(self, key):
-        if int(time.time()) - self.get(key) > self.lazy_load_expire:
+        if int(time.time()) - self._lazy_load_init_ts.get(key, 0) > self.lazy_load_expire:
             return True
 
         return False
@@ -73,10 +73,7 @@ class ExperimentGroupClient(object):
             raise ExperimentValidateError("lazy_load_namespace_item_func not found")
 
         if namespace_name in self.lazy_load_namespaces and namespace_name in self.lazy_load_namespace_items:
-            namespace_item_init_timestamp = self._lazy_load_init_ts.get(namespace_name, 0)
-            now = int(time.time())
-
-            if (now - namespace_item_init_timestamp) < self.lazy_load_expire:
+            if self.is_key_expire(namespace_name):
                 return self.lazy_load_namespace_items[namespace_name]
 
         _ns = self.lazy_load_namespace_item_func(namespace_name)
@@ -84,7 +81,7 @@ class ExperimentGroupClient(object):
             raise ExperimentValidateError("Namespace {} not found".format(namespace_name))
 
         self.lazy_load_namespace_items[namespace_name] = _ns
-        self._lazy_load_init_ts[namespace_name] = int(time.time())
+        self.refresh_key_expire_time(namespace_name)
         return self.lazy_load_namespace_items[namespace_name]
 
     def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, cache=True, **params):
