@@ -326,12 +326,15 @@ def test_lazy_load_namespace():
     def lazy_load_it(namespace):
         return NamespaceItem.from_dict(namespace_spec_dict)
 
-    c = ExperimentGroupClient([], lazy_load_namespaces=['namespace_2'], lazy_load_func=lazy_load_it)
+    def lazy_load_namespaces():
+        return ['namespace_2']
+
+    c = ExperimentGroupClient([], lazy_load_namespaces_func=lazy_load_namespaces, lazy_load_namespace_item_func=lazy_load_it)
     group = c.get_tracking_group('namespace_2', unit="12345", user_id=1, track=False)
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p9_2', 'collect_2.c9-a1-2')
 
     with pytest.raises(ExperimentValidateError):
-        group = c.get_tracking_group('namespace_4', unit="12345", user_id=1, track=False)
+        c.get_tracking_group('namespace_4', unit="12345", user_id=1, track=False)
 
 
 def test_experiment_context():
