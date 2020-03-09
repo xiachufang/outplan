@@ -129,7 +129,7 @@ class ExperimentGroupClient(object):
         )
         return tracking_group
 
-    def get_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
+    def get_group(self, namespace_name, unit="", user_id=None, pdid=None, track=True, **params):
         tracking_group = self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params)
         if not tracking_group:
             return None
