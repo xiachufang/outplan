@@ -1,7 +1,7 @@
 # coding: utf-8
 from collections import namedtuple
 from decimal import Decimal
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional  # noqa
 
 import simplejson
 from planout.experiment import DefaultExperiment
@@ -104,7 +104,7 @@ class NamespaceItem(object):
     但如果多个实验影响同一个结果，则多个实验必须处于同一个 namespace
     """
 
-    def __init__(self, name, experiment_items, bucket=10, unit="unit"):
+    def __init__(self, name, experiment_items, bucket=10, unit="unit", unit_type=""):
         if not all([name, experiment_items]):
             raise ValueError("Namespace name and experiment_items required.")
 
@@ -112,6 +112,7 @@ class NamespaceItem(object):
         self.experiment_items = experiment_items    # type: List[ExperimentItem]
         self.bucket = bucket
         self.unit = unit
+        self.unit_type = unit_type
 
         self.validate()
 
@@ -145,7 +146,10 @@ class NamespaceItem(object):
                     return group_object
         return None
 
-    def get_group(self, unit, **params):
+    def get_group(self, unit="", **params):
+        if not unit:
+            unit = params.get(self.unit_type, "")
+
         valid_experiment_items = []
         for experiment_item in self.experiment_items:
             if callable(experiment_item.pre_condition):
@@ -229,6 +233,7 @@ class NamespaceItem(object):
             name=data['name'],
             bucket=int(data.get('bucket', 10)),
             experiment_items=[ExperimentItem.from_dict(spec, tag_filter_func) for spec in data['experiment_items']],
+            unit_type=data.get('unit_type'),
         )
 
 

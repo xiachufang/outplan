@@ -84,7 +84,7 @@ class ExperimentGroupClient(object):
         self.refresh_key_expire_time(namespace_name)
         return self.lazy_load_namespace_items[namespace_name]
 
-    def get_tracking_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, cache=True, **params):
+    def get_tracking_group(self, namespace_name, unit="", user_id=None, pdid=None, track=True, cache=True, **params):
         # type: (str, str, int, str, bool, bool, Dict[Any, Any]) -> Any
         """取分组的全局唯一标识符，带上实验链的信息"""
         try:
@@ -96,19 +96,19 @@ class ExperimentGroupClient(object):
         except AttributeError:
             cached_group = {}
 
-        if allow_specify_group and callable(self._get_specified_group_func):
+        if unit and allow_specify_group and callable(self._get_specified_group_func):
             group = self._get_specified_group_func(experiment_context, namespace_name, unit, user_id=user_id, pdid=pdid, **params)
             if group:
                 _tracking_group = self.get_tracking_group_by_group_name(namespace_name, group)
                 if _tracking_group:
                     return _tracking_group
 
-        namespace_item = self.get_namespace_item(namespace_name)
-
         key = "tracking_group{%s}{%s}" % (namespace_name, unit)
 
-        if cache and key in cached_group:
+        if unit and cache and key in cached_group:
             return cached_group[key]
+
+        namespace_item = self.get_namespace_item(namespace_name)
 
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
         if not tracking_group:
@@ -129,7 +129,7 @@ class ExperimentGroupClient(object):
         )
         return tracking_group
 
-    def get_group(self, namespace_name, unit, user_id=None, pdid=None, track=True, **params):
+    def get_group(self, namespace_name, unit="", user_id=None, pdid=None, track=True, **params):
         tracking_group = self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params)
         if not tracking_group:
             return None
