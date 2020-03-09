@@ -99,6 +99,7 @@ GroupHookNamespace = NamespaceItem(
 namespace_spec_dict = {
     "name": "namespace_2",
     "bucket": 10,
+    "unit_type": "pdid",
     "experiment_items": [
         {
             "name": "homepage_exp_2",
@@ -310,6 +311,8 @@ def test_experiment_group_client():
     group = client.get_tracking_group('namespace_2', unit="12345", user_id=1, track=False)
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p9_2', 'collect_2.c9-a1-2')
     group = client.get_group('namespace_2', unit="12345", user_id=1, track=False)
+    assert group == "c9-a1-2"
+    group = client.get_group('namespace_2', pdid="12345", user_id=1, track=False)
     assert group == "c9-a1-2"
     group = client.get_tracking_group('namespace_2', unit="12345asdfasdf", user_id=15, track=False)
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p8_2_2', 'collect_2.c8-b0-2')
