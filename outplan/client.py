@@ -103,12 +103,12 @@ class ExperimentGroupClient(object):
                 if _tracking_group:
                     return _tracking_group
 
-        namespace_item = self.get_namespace_item(namespace_name)
-
         key = "tracking_group{%s}{%s}" % (namespace_name, unit)
 
-        if cache and key in cached_group:
+        if unit and cache and key in cached_group:
             return cached_group[key]
+
+        namespace_item = self.get_namespace_item(namespace_name)
 
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
         if not tracking_group:
