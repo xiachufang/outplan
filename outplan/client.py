@@ -45,12 +45,12 @@ class ExperimentGroupClient(object):
         return False
 
     def load_lazy_namespaces(self):
-        """加载有效的 namespaces"""
+        """加载有效的 namespace name 列表"""
         cache_key = "lazy_load_namespaces"
         if self.is_key_expire(cache_key):
             self.lazy_load_namespaces = self.lazy_load_namespaces_func() if self.lazy_load_namespaces_func else []
 
-        self.refresh_key_expire_time(cache_key)
+            self.refresh_key_expire_time(cache_key)
 
     def validate(self):
         names = set()
@@ -62,6 +62,8 @@ class ExperimentGroupClient(object):
 
     def get_namespace_item(self, namespace_name):
         # type: (str) -> NamespaceItem
+
+        # 代码里显式定义的实验直接返回
         if namespace_name in self.namespaces:
             return self.namespaces[namespace_name]
 
@@ -72,10 +74,11 @@ class ExperimentGroupClient(object):
         if not self.lazy_load_namespace_item_func:
             raise ExperimentValidateError("lazy_load_namespace_item_func not found")
 
-        if namespace_name in self.lazy_load_namespaces and namespace_name in self.lazy_load_namespace_items:
-            if self.is_key_expire(namespace_name):
-                return self.lazy_load_namespace_items[namespace_name]
+        # 已经 load 过 并且 没过期
+        if namespace_name in self.lazy_load_namespace_items and not self.is_key_expire(namespace_name):
+            return self.lazy_load_namespace_items[namespace_name]
 
+        # 过期了或者没有 load 过，需要重新 load
         _ns = self.lazy_load_namespace_item_func(namespace_name)
         if not _ns:
             raise ExperimentValidateError("Namespace {} not found".format(namespace_name))
@@ -96,6 +99,10 @@ class ExperimentGroupClient(object):
         except AttributeError:
             cached_group = {}
 
+        namespace_item = self.get_namespace_item(namespace_name)
+        if not unit:
+            unit = {"pdid": pdid, "user_id": user_id}.get(namespace_item.unit_type, "")  # type: ignore
+
         if unit and allow_specify_group and callable(self._get_specified_group_func):
             group = self._get_specified_group_func(experiment_context, namespace_name, unit, user_id=user_id, pdid=pdid, **params)
             if group:
@@ -107,8 +114,6 @@ class ExperimentGroupClient(object):
 
         if unit and cache and key in cached_group:
             return cached_group[key]
-
-        namespace_item = self.get_namespace_item(namespace_name)
 
         tracking_group = namespace_item.get_group(unit, user_id=user_id, pdid=pdid, **params)
         if not tracking_group:
