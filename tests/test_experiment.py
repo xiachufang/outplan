@@ -1,4 +1,6 @@
 # coding: utf-8
+import time
+from collections import defaultdict
 
 import pytest
 
@@ -326,21 +328,38 @@ def test_experiment_group_client():
 
 
 def test_lazy_load_namespace():
+    lazy_load_cnt = defaultdict(int)
+
     def lazy_load_it(namespace):
+        lazy_load_cnt[namespace] += 1
         return NamespaceItem.from_dict(namespace_spec_dict)
 
     def lazy_load_namespaces():
+        lazy_load_cnt["lazy_load_namespaces"] += 1
         return ['namespace_2']
 
-    c = ExperimentGroupClient([], lazy_load_namespaces_func=lazy_load_namespaces, lazy_load_namespace_item_func=lazy_load_it)
+    c = ExperimentGroupClient([], lazy_load_namespaces_func=lazy_load_namespaces, lazy_load_namespace_item_func=lazy_load_it, lazy_load_expire=2)
     group = c.get_tracking_group('namespace_2', unit="12345", user_id=1, track=False)
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p9_2', 'collect_2.c9-a1-2')
 
+    assert lazy_load_cnt["namespace_2"] == 1
+    assert lazy_load_cnt["lazy_load_namespaces"] == 1
+
     # flush cache
-    c._lazy_load_init_ts = {}
     group = c.get_tracking_group('namespace_2', unit="123456", user_id=1, track=False)
     assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p9_2', 'collect_2.c9-a1-2')
 
+    assert lazy_load_cnt["namespace_2"] == 1
+    assert lazy_load_cnt["lazy_load_namespaces"] == 1
+
+    time.sleep(3)
+
+    group = c.get_tracking_group('namespace_2', unit="123456", user_id=1, track=False)
+    assert (group.experiment_trace(), group.group_trace()) == ('homepage_exp_2.clt_p9_2', 'collect_2.c9-a1-2')
+    assert lazy_load_cnt["namespace_2"] == 2
+    assert lazy_load_cnt["lazy_load_namespaces"] == 2
+
+    # test lazy load
     with pytest.raises(ExperimentValidateError):
         c.get_tracking_group('namespace_4', unit="12345", user_id=1, track=False)
 
