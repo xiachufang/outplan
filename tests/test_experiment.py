@@ -85,6 +85,7 @@ HomepageNamespace = NamespaceItem(
 
 GroupHookNamespace = NamespaceItem(
     name="group_hook_namespace",
+    unit_type="user_id",
     experiment_items=[
         ExperimentItem(
             name="group_hook",
@@ -409,6 +410,10 @@ def test_experiment_group_hook():
     c.setup_experiment_context(allow_specify_group=True, admin=True)
     group = c.get_tracking_group('group_hook_namespace', unit="12345", user_id=1, pdid='233', track=False)
     assert group.group_names[0] == 'admin'
+
+    # unit_type & specify group
+    group = c.get_tracking_group("group_hook_namespace", user_id=1, pdid="222", track=False)
+    assert group.group_names[0] == "admin"
 
     c.setup_experiment_context(admin=False)
     group = c.get_tracking_group('group_hook_namespace', unit="12345", user_id=1, pdid="233", track=False)
