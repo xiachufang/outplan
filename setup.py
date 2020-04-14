@@ -14,7 +14,7 @@ with io.open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='outplan',
 
-    version='1.6.1',
+    version='1.6.2',
 
     description='Support nested experiment/namespace base on Facebook Planout',
     long_description=long_description,
