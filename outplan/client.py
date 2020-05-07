@@ -219,30 +219,43 @@ class ExperimentGroupClient(object):
 
     @contextmanager
     def auto_tracking_group_by_user_id(self, namespace_name, **params):
+        experiment_error = True
         try:
             user_id = experiment_context.user_id
 
-            yield self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id,
-                                          **params)
+            res = self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id, **params)
+            experiment_error = False
+            yield res
         except Exception as e:
-            if self.logger:
+            if self.logger and experiment_error:
                 self.logger.error(
                     "auto_tracking_group error: namespace_name: {}, msg: {}, params: {}",
                     namespace_name, str(e), simplejson.dumps(params)
                 )
-            yield None
+
+            # 实验错误需要被 fallback 到 control 组
+            # 业务异常直接抛出
+            if experiment_error:
+                yield None
+            else:
+                raise e
 
     @contextmanager
     def auto_group_by_user_id(self, namespace_name, **params):
+        experiment_error = True
         try:
             user_id = experiment_context.user_id
-            yield self.get_group(namespace_name, unit=user_id, user_id=user_id,
-                                 **params)
+            res = self.get_group(namespace_name, unit=user_id, user_id=user_id, **params)
+            experiment_error = False
+            yield res
         except Exception as e:
             # 这里需要被 fallback 到 control 组
-            if self.logger:
+            if self.logger and experiment_error:
                 self.logger.error(
                     "auto_group error: namespace_name: {}, msg: {}, params: {}",
                     namespace_name, str(e), simplejson.dumps(params)
                 )
-            yield None
+            if experiment_error:
+                yield None
+            else:
+                raise e
