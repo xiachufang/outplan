@@ -17,10 +17,10 @@ class _TrackingClient(Protocol):
 
 
 class _Logger(Protocol):
-    def error(self, *msgs: str):
+    def error(self, msg: str):
         ...
 
-    def info(self, *msgs: str):
+    def info(self, msg: str):
         ...
 
 
@@ -256,10 +256,7 @@ class ExperimentGroupClient:
             # 这里需要被 fallback 到 control 组
             if self.logger:
                 self.logger.error(
-                    "auto_group error: namespace_name: {}, msg: {}, params: {}",
-                    namespace_name,
-                    str(e),
-                    simplejson.dumps(params),
+                    f"auto_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
                 )
             yield None
 
@@ -281,10 +278,7 @@ class ExperimentGroupClient:
         except Exception as e:
             if self.logger:
                 self.logger.error(
-                    "auto_tracking_group error: namespace_name: {}, msg: {}, params: {}",
-                    namespace_name,
-                    str(e),
-                    simplejson.dumps(params),
+                    f"auto_tracking_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
                 )
             yield None
 
@@ -297,10 +291,10 @@ class ExperimentGroupClient:
             user_id = experiment_context.user_id
             if (
                 not params.get("pdid")
-                and hasattr(experiment_context, "pdid")
-                and experiment_context.pdid
+                and hasattr(experiment_context, "device_id")
+                and experiment_context.device_id
             ):
-                params["pdid"] = experiment_context.pdid
+                params["pdid"] = experiment_context.device_id
 
             res = self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id, **params)
             experiment_error = False
@@ -308,10 +302,7 @@ class ExperimentGroupClient:
         except Exception as e:
             if self.logger and experiment_error:
                 self.logger.error(
-                    "auto_tracking_group error: namespace_name: {}, msg: {}, params: {}",
-                    namespace_name,
-                    str(e),
-                    simplejson.dumps(params),
+                    f"auto_tracking_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
                 )
 
             # 实验错误需要被 fallback 到 control 组
@@ -328,10 +319,10 @@ class ExperimentGroupClient:
             user_id = experiment_context.user_id or 0
             if (
                 not params.get("pdid")
-                and hasattr(experiment_context, "pdid")
-                and experiment_context.pdid
+                and hasattr(experiment_context, "device_id")
+                and experiment_context.device_id
             ):
-                params["pdid"] = experiment_context.pdid
+                params["pdid"] = experiment_context.device_id
 
             res = self.get_group(namespace_name, unit=user_id, user_id=user_id, **params)
             experiment_error = False
@@ -340,10 +331,7 @@ class ExperimentGroupClient:
             # 这里需要被 fallback 到 control 组
             if self.logger and experiment_error:
                 self.logger.error(
-                    "auto_group error: namespace_name: {}, msg: {}, params: {}",
-                    namespace_name,
-                    str(e),
-                    simplejson.dumps(params),
+                    f"auto_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
                 )
             if experiment_error:
                 yield None
