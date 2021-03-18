@@ -1,17 +1,9 @@
 import time
 from contextlib import contextmanager
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Protocol,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterator, List, Optional, Union
 
 import simplejson
+from typing_extensions import Protocol
 
 from .const import ONE_MINUTE
 from .exceptions import ExperimentValidateError
