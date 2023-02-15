@@ -35,6 +35,7 @@ setup(
     install_requires=[
         "simplejson",
         "planout==0.6.0",
+        "six",
         "typing-extensions",
         'typing; python_version < "3.5"',
     ],
