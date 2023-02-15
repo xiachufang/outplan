@@ -128,8 +128,8 @@ class NamespaceItem(object):
 
             experiment_names.add(experiment_item.name)
 
-        if experiment_total_bucket != self.bucket:
-            raise ExperimentValidateError(u"实验({})总 bucket 数必须与 namespace bucket 相等".format(self.name))
+        if experiment_total_bucket > self.bucket:
+            raise ExperimentValidateError(u"实验({})总 bucket 数小于 namespace bucket 数".format(self.name))
 
         # 同一个 namespace 下的 group name 必须唯一
         group_names = get_namespace_group_names(self)
@@ -192,6 +192,10 @@ class NamespaceItem(object):
         planout_namespace_cls = generate_planout_namespace(self, valid_experiment_items)
         res = planout_namespace_cls(unit=unit, **params)
         group_item = res.get('group')
+
+        # 没有通过 bucket 匹配到实验
+        if not group_item:
+            return None
 
         group_names, exp_names = [group_item.name], [res.get('experiment_name')]
         if group_item.result_type == GroupResultType.group:
