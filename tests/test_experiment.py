@@ -614,3 +614,45 @@ def test_experiment_group_hook():
         "group_hook_namespace", unit="12345", user_id=1, pdid="233", track=False
     )
     assert group.group_names[0] != "admin"
+
+
+def test_not_full_bucket_namespace_get_group():
+    namespace_spec = {
+        "name": "not_full_namespace",
+        "bucket": 1000,
+        "unit_type": "pdid",
+        "experiment_items": [
+            {
+                "name": "homepage_ctl",
+                "bucket": 1,
+                "group_items": [{"name": "h_ctl_2", "weight": 1, "extra_params": "hahaha"}],
+            },
+        ],
+    }
+    namespace = NamespaceItem.from_dict(namespace_spec)
+    namespace.validate()
+
+    cnt = 0
+    while cnt <= 10 and namespace.get_group(unit="foo-{}".format(cnt)) is not None:
+        cnt += 1
+    assert cnt <= 10
+
+    namespace_spec = {
+        "name": "not_full_namespace",
+        "bucket": 1000,
+        "unit_type": "pdid",
+        "experiment_items": [
+            {
+                "name": "homepage_ctl",
+                "bucket": 999,
+                "group_items": [{"name": "h_ctl_2", "weight": 1, "extra_params": "hahaha"}],
+            },
+        ],
+    }
+    namespace = NamespaceItem.from_dict(namespace_spec)
+    namespace.validate()
+
+    cnt = 0
+    while cnt <= 10 and namespace.get_group(unit="foo-{}".format(cnt)) is None:
+        cnt += 1
+    assert cnt <= 10
