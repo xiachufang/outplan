@@ -69,18 +69,12 @@ def test_local():
 def test_get_greenlet_ident():
     ids = []
 
-    class T(threading.Thread):
-        def run(self):
-            ids.append(greenlet_ident())
-
+    def worker():
+        ids.append(greenlet_ident())
+    gs = []
     N_THREADS = 5
-    threads = []
     for _ in range(N_THREADS):
-        _thread = T()
-        threads.append(_thread)
-        _thread.start()
-
-    for t in threads:
-        t.join()
+        gs.append(gevent.spawn(worker))
+    gevent.joinall(gs)
 
     assert len(set(ids)) == N_THREADS
