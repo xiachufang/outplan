@@ -338,10 +338,10 @@ class GroupItem(object):
                 _group = namespace.get_group(unit, **params)
                 if _group:
                     return _group
+            # 找不到合适的实验及分组
+            return None
         else:
             raise NotImplementedError()
-
-        raise ExperimentGroupNotFindError("未找到分组")
 
     def get_group_by_name(self, group_name):
         # type: (str) -> Optional[GroupItem]
