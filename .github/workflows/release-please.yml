@@ -1,0 +1,52 @@
+on:
+  push:
+    branches:
+      - master
+
+name: release please
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GoogleCloudPlatform/release-please-action@v2
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: python
+          package-name: outplan
+
+      - uses: actions/checkout@v3
+        if: ${{ steps.release.outputs.release_created }}
+
+      - name: Publish / Prepare python
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+
+      - name: Publish / Install deps
+        if: ${{ steps.release.outputs.release_created }}
+        run: >-
+          python -m
+          pip install
+          build
+          --user
+
+      - name: Publish / Build
+        if: ${{ steps.release.outputs.release_created }}
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+          .
+
+      - name: Publish / Push to PyPI
+        if: ${{ steps.release.outputs.release_created }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: "${{ secrets.REGISTRY_USERNAME }}"
+          password: "${{ secrets.REGISTRY_PASSWORD }}"
+          repository_url: "https://pypi.xiachufang.com"
+          verbose: true
