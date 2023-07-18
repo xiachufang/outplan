@@ -141,15 +141,16 @@ class ExperimentGroupClient:
             if group:
                 _tracking_group = self.get_tracking_group_by_group_name(namespace_name, group)
                 if _tracking_group:
-                    self.tracking_client.track(
-                        user_id=user_id or 0,
-                        pdid=pdid or "",
-                        event_name="user_experiment_group_info",
-                        properties=dict(
-                            experiment=_tracking_group.experiment_trace(),
-                            group=_tracking_group.group_trace(),
-                        ),
-                    )
+                    if self.tracking_client:
+                        self.tracking_client.track(
+                            user_id=user_id or 0,
+                            pdid=pdid or "",
+                            event_name="user_experiment_group_info",
+                            properties=dict(
+                                experiment=_tracking_group.experiment_trace(),
+                                group=_tracking_group.group_trace(),
+                            ),
+                        )
                     return _tracking_group
 
         key = "tracking_group{%s}{%s}" % (namespace_name, unit)
