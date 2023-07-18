@@ -141,7 +141,7 @@ class ExperimentGroupClient:
             if group:
                 _tracking_group = self.get_tracking_group_by_group_name(namespace_name, group)
                 if _tracking_group:
-                    if self.tracking_client:
+                    if self.tracking_client and track:
                         self.tracking_client.track(
                             user_id=user_id or 0,
                             pdid=pdid or "",
