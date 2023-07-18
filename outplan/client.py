@@ -141,6 +141,15 @@ class ExperimentGroupClient:
             if group:
                 _tracking_group = self.get_tracking_group_by_group_name(namespace_name, group)
                 if _tracking_group:
+                    self.tracking_client.track(
+                        user_id=user_id or 0,
+                        pdid=pdid or "",
+                        event_name="user_experiment_group_info",
+                        properties=dict(
+                            experiment=_tracking_group.experiment_trace(),
+                            group=_tracking_group.group_trace(),
+                        ),
+                    )
                     return _tracking_group
 
         key = "tracking_group{%s}{%s}" % (namespace_name, unit)
@@ -189,11 +198,12 @@ class ExperimentGroupClient:
     ) -> Optional[TrackingGroup]:
         """ 根据实验组名获取tracking_group """
         namespace_item = self.get_namespace_item(namespace_name)  # type: NamespaceItem
-        group = namespace_item.get_group_by_name(group_name)
-        if group:
+        result = namespace_item.get_experiment_and_group_by_name(group_name)
+        if result:
+            exp, group = result
             return TrackingGroup(
                 group_name=group.name,
-                experiment_name="",
+                experiment_name=exp.name,
                 group_extra_params=group.extra_params,
             )
         return None

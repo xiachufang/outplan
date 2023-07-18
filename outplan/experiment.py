@@ -1,7 +1,7 @@
 # coding: utf-8
 from collections import namedtuple
 from decimal import Decimal
-from typing import Any, Callable, Dict, List, Optional  # noqa
+from typing import Any, Callable, Dict, List, Optional, Tuple # noqa
 
 import simplejson
 from planout.experiment import DefaultExperiment
@@ -139,11 +139,19 @@ class NamespaceItem(object):
 
     def get_group_by_name(self, group_name):
         # type: (str) -> Optional[GroupItem]
+        result = self.get_experiment_and_group_by_name(group_name)
+        if result is None:
+            return None
+        _, group_object = result
+        return group_object
+
+    def get_experiment_and_group_by_name(self, group_name):
+        # type: (str) -> Optional[Tuple[ExperimentItem, GroupItem]]
         for experiment_item in self.experiment_items:
             for group in experiment_item.group_items:
                 group_object = group.get_group_by_name(group_name)
                 if group_object:
-                    return group_object
+                    return experiment_item, group_object
         return None
 
     def get_group(self, unit="", **params):
