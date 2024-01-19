@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://www.github.com/xiachufang/outplan/compare/v2.1.5...v2.2.0) (2024-01-19)
+
+
+### Features
+
+* 增加自动 uppercase unit 参数 ([5590e74](https://www.github.com/xiachufang/outplan/commit/5590e74fe5144547f64be754d314a3593f573ae6))
+
 ### [2.1.5](https://www.github.com/xiachufang/outplan/compare/v2.1.4...v2.1.5) (2023-07-26)
 
 
