@@ -104,7 +104,7 @@ class NamespaceItem(object):
     但如果多个实验影响同一个结果，则多个实验必须处于同一个 namespace
     """
 
-    def __init__(self, name, experiment_items, bucket=10, unit="unit", unit_type=""):
+    def __init__(self, name, experiment_items, bucket=10, unit="unit", unit_type="", auto_upper_unit=False):
         if not all([name, experiment_items]):
             raise ValueError("Namespace name and experiment_items required.")
 
@@ -113,6 +113,7 @@ class NamespaceItem(object):
         self.bucket = bucket
         self.unit = unit
         self.unit_type = unit_type
+        self.auto_upper_unit = auto_upper_unit
 
         self.validate()
 
@@ -246,6 +247,7 @@ class NamespaceItem(object):
             bucket=int(data.get('bucket', 10)),
             experiment_items=[ExperimentItem.from_dict(spec, tag_filter_func) for spec in data['experiment_items']],
             unit_type=data.get('unit_type'),
+            auto_upper_unit=data.get('auto_upper_unit', False),
         )
 
 

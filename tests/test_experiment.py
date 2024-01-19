@@ -1,5 +1,8 @@
 # coding: utf-8
+import random
+import string
 import time
+
 from collections import defaultdict
 
 import pytest
@@ -439,8 +442,56 @@ TestTagNamespace2 = NamespaceItem.from_dict(
     test_tag_namespace_spec_dict, tag_filter_func=tag_filter
 )
 
+AutoUpperUnitNamespace = NamespaceItem(
+    name="auto_upper_namespace1",
+    experiment_items=[
+        ExperimentItem(
+            name="auto_upper_experiment1",
+            bucket=9,
+            group_items=[
+                GroupItem(
+                    name="auto_upper_group1",
+                    weight=0.5,
+                ),
+                GroupItem(
+                    name="auto_upper_group2",
+                    weight=0.5,
+                ),
+            ]
+        )
+    ],
+    bucket=10,
+    unit_type="pdid",
+    auto_upper_unit=True
+)
+
+auto_upper_namespace_spec_dict = {
+    "name": "auto_upper_namespace2",
+    "experiment_items": [
+        {
+            "name": "auto_upper_experiment2",
+            "bucket": 9,
+            "group_items": [
+                {
+                    "name": "auto_upper_group1",
+                    "weight": 0.5,
+                },
+                {
+                    "name": "auto_upper_group2",
+                    "weight": 0.5,
+                },
+            ]
+        },
+    ],
+    "bucket": 10,
+    "unit_type": "pdid",
+    "auto_upper_unit": True
+}
+
+AutoUpperUnitNamespace2 = NamespaceItem.from_dict(auto_upper_namespace_spec_dict)
+
 client = ExperimentGroupClient(
-    [HomepageNamespace, HomepageNamespace2, TestTagNamespace, TestTagNamespace2]
+    [HomepageNamespace, HomepageNamespace2, TestTagNamespace, TestTagNamespace2, AutoUpperUnitNamespace, AutoUpperUnitNamespace2]
 )
 
 
@@ -656,3 +707,38 @@ def test_not_full_bucket_namespace_get_group():
     while cnt <= 10 and namespace.get_group(unit="foo-{}".format(cnt)) is None:
         cnt += 1
     assert cnt <= 10
+
+
+def test_auto_upper_unit_namespace():
+
+    def same_group(group_a, group_b):
+        if group_a is None and group_b is None:
+            return True
+        if group_a is None or group_b is None:
+            return False
+        return group_a.experiment_trace() == group_b.experiment_trace() and group_a.group_trace() == group_b.group_trace()
+
+    # test auto_upper_namespace1
+    assert same_group(client.get_tracking_group("auto_upper_namespace1", unit="abc-12345"),
+                      client.get_tracking_group("auto_upper_namespace1", unit="ABC-12345"))
+
+    for _ in range(100):
+        rand_pdid = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+        assert same_group(client.get_tracking_group("auto_upper_namespace1", unit=rand_pdid),
+                          client.get_tracking_group("auto_upper_namespace1", unit=rand_pdid.upper()))
+
+    # test auto_upper_namespace2
+    assert same_group(client.get_tracking_group("auto_upper_namespace2", unit="abc-12345"),
+                      client.get_tracking_group("auto_upper_namespace2", unit="ABC-12345"))
+
+    for _ in range(100):
+        rand_pdid = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+        assert same_group(client.get_tracking_group("auto_upper_namespace2", unit=rand_pdid),
+                          client.get_tracking_group("auto_upper_namespace2", unit=rand_pdid.upper()))
+
+    # test normal namespace
+    res = []
+    for _ in range(1000):
+        rand_pdid = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+        res.append(same_group(client.get_tracking_group("namespace_1", unit=rand_pdid), client.get_tracking_group("namespace_1", unit=rand_pdid.upper())))
+    assert not all(res)

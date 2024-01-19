@@ -134,6 +134,9 @@ class ExperimentGroupClient:
         if not unit:
             unit = {"pdid": pdid, "user_id": user_id}.get(namespace_item.unit_type, "")  # type: ignore
 
+        if namespace_item.auto_upper_unit:
+            unit = str(unit).upper()
+
         if unit and allow_specify_group and callable(self._get_specified_group_func):
             group = self._get_specified_group_func(
                 experiment_context, namespace_name, unit, user_id=user_id, pdid=pdid, **params
