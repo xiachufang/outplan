@@ -1,7 +1,4 @@
-# coding: utf-8
-
 from os import getpid
-
 
 try:
     from greenlet import getcurrent as get_ident
@@ -24,7 +21,7 @@ def greenlet_ident():
     return "-".join(str(i) for i in idents)
 
 
-class Local(object):
+class Local:
     """A fork-safe Greenlet-local object.
 
     Example:
