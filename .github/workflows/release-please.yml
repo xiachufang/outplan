@@ -22,7 +22,7 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-python@v2
         with:
-          python-version: 3.6
+          python-version: 3.7
 
       - name: Publish / Install deps
         if: ${{ steps.release.outputs.release_created }}
