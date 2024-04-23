@@ -1,3 +1,4 @@
+# ruff: noqa: PLR2004,E501
 import threading
 from multiprocessing import Pool
 
@@ -69,6 +70,7 @@ def test_get_greenlet_ident():
 
     def worker():
         ids.append(greenlet_ident())
+
     gs = []
     N_THREADS = 5
     for _ in range(N_THREADS):

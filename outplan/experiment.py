@@ -1,18 +1,17 @@
-# coding: utf-8
+import json
 from collections import namedtuple
 from decimal import Decimal
-from typing import Any, Callable, Dict, List, Optional, Tuple # noqa
+from typing import Any, Callable, Dict, List, Optional, Tuple  # noqa
 
-import simplejson
 from planout.experiment import DefaultExperiment
 from planout.namespace import SimpleNamespace
 from planout.ops.random import WeightedChoice
 
 from .const import GroupResultType, UserTagFilterType
-from .exceptions import ExperimentGroupNotFindError, ExperimentValidateError
+from .exceptions import ExperimentValidateError
 
 
-class TrackingGroup(object):
+class TrackingGroup:
     """Group object with group trace info"""
 
     def __init__(self, group_name=None, experiment_name=None, group_extra_params=None):
@@ -59,7 +58,7 @@ def generate_planout_experiment(experiment_item):
             params.group = WeightedChoice(
                 choices=experiment_item.group_items,
                 weights=[group.weight for group in experiment_item.group_items],
-                unit=unit
+                unit=unit,
             )
             params.experiment_name = experiment_item.name
 
@@ -78,9 +77,7 @@ def generate_planout_namespace(namespace_item, valid_experiment_items):
         def setup_experiments(self):
             for experiment_item in valid_experiment_items:
                 self.add_experiment(
-                    experiment_item.name,
-                    generate_planout_experiment(experiment_item),
-                    experiment_item.bucket
+                    experiment_item.name, generate_planout_experiment(experiment_item), experiment_item.bucket
                 )
 
     return _PlanoutNamespace
@@ -99,9 +96,9 @@ def get_namespace_group_names(namespace_item):
     return names
 
 
-class NamespaceItem(object):
-    """一个 namespace 对应一个总体，里面可以有多个实验，
-    但如果多个实验影响同一个结果，则多个实验必须处于同一个 namespace
+class NamespaceItem:
+    """一个 namespace 对应一个总体,里面可以有多个实验,
+    但如果多个实验影响同一个结果,则多个实验必须处于同一个 namespace
     """
 
     def __init__(self, name, experiment_items, bucket=10, unit="unit", unit_type="", auto_upper_unit=False):
@@ -109,7 +106,7 @@ class NamespaceItem(object):
             raise ValueError("Namespace name and experiment_items required.")
 
         self.name = name
-        self.experiment_items = experiment_items    # type: List[ExperimentItem]
+        self.experiment_items = experiment_items  # type: List[ExperimentItem]
         self.bucket = bucket
         self.unit = unit
         self.unit_type = unit_type
@@ -121,22 +118,21 @@ class NamespaceItem(object):
         experiment_total_bucket = 0
         experiment_names = set()
         for experiment_item in self.experiment_items:
-
             experiment_total_bucket += experiment_item.bucket
 
             if experiment_item.name in experiment_names:
-                raise ExperimentValidateError(u"experiment name: {} 重复".format(experiment_item.name))
+                raise ExperimentValidateError(f"experiment name: {experiment_item.name} 重复")
 
             experiment_names.add(experiment_item.name)
 
         if experiment_total_bucket > self.bucket:
-            raise ExperimentValidateError(u"实验({})总 bucket 数小于 namespace bucket 数".format(self.name))
+            raise ExperimentValidateError(f"实验({self.name})总 bucket 数小于 namespace bucket 数")
 
         # 同一个 namespace 下的 group name 必须唯一
         group_names = get_namespace_group_names(self)
 
         if len(group_names) != len(set(group_names)):
-            raise ExperimentValidateError("实验({}) group name 重复".format(self.name))
+            raise ExperimentValidateError(f"实验({self.name}) group name 重复")
 
     def get_group_by_name(self, group_name):
         # type: (str) -> Optional[GroupItem]
@@ -155,7 +151,7 @@ class NamespaceItem(object):
                     return experiment_item, group_object
         return None
 
-    def get_group(self, unit="", **params):
+    def get_group(self, unit="", **params):  # noqa: PLR0912
         if not unit:
             unit = params.get(self.unit_type, "")
 
@@ -171,7 +167,9 @@ class NamespaceItem(object):
                 if experiment_item.tag_filter_type == UserTagFilterType.AND:
                     res = True
                     for user_tag in experiment_item.user_tags:
-                        _res = experiment_item.tag_filter_func(experiment_item.name, user_tag.tag_id, user_tag_columns=user_tag.columns, **params)
+                        _res = experiment_item.tag_filter_func(
+                            experiment_item.name, user_tag.tag_id, user_tag_columns=user_tag.columns, **params
+                        )
                         if user_tag.not_in:
                             _res = not _res
 
@@ -182,7 +180,9 @@ class NamespaceItem(object):
                 elif experiment_item.tag_filter_type == UserTagFilterType.OR:
                     res = False
                     for user_tag in experiment_item.user_tags:
-                        _res = experiment_item.tag_filter_func(experiment_item.name, user_tag.tag_id, user_tag_columns=user_tag.columns, **params)
+                        _res = experiment_item.tag_filter_func(
+                            experiment_item.name, user_tag.tag_id, user_tag_columns=user_tag.columns, **params
+                        )
                         if user_tag.not_in:
                             _res = not _res
 
@@ -211,10 +211,9 @@ class NamespaceItem(object):
             return TrackingGroup(
                 group_name=group_item.name,
                 experiment_name=res.get('experiment_name'),
-                group_extra_params=group_item.extra_params
+                group_extra_params=group_item.extra_params,
             )
         elif group_item.result_type == GroupResultType.layer:
-
             # 直到取到最底层分组
             while True:
                 _res = group_item.get_group(unit, **params)
@@ -236,7 +235,7 @@ class NamespaceItem(object):
         if not json_namespace:
             raise ExperimentValidateError("json_namespace required.")
 
-        namespace_spec = simplejson.loads(json_namespace)
+        namespace_spec = json.loads(json_namespace)
         return cls.from_dict(namespace_spec, tag_filter_func=tag_filter_func)
 
     @classmethod
@@ -251,21 +250,21 @@ class NamespaceItem(object):
         )
 
 
-class ExperimentItem(object):
+class ExperimentItem:
     """实验类"""
 
     def __init__(self, name, bucket, group_items, pre_condition=None, user_tags=None, tag_filter_func=None):
         self.name = name
         self.bucket = bucket
-        self.group_items = group_items                  # type: List[GroupItem]
+        self.group_items = group_items  # type: List[GroupItem]
         self.pre_condition = pre_condition
-        self.tag_filter_type = UserTagFilterType.AND    # 多个 tag_ids 为 and 关系
+        self.tag_filter_type = UserTagFilterType.AND  # 多个 tag_ids 为 and 关系
         self.tag_filter_func = tag_filter_func
 
         try:
             self.user_tags = self._parse_user_tag(user_tags)
         except Exception as e:
-            raise ExperimentValidateError("实验({})标签格式错误:{}".format(self.name, str(e)))
+            raise ExperimentValidateError(f"实验({self.name})标签格式错误:{e!s}")
 
         self.validate()
 
@@ -273,12 +272,12 @@ class ExperimentItem(object):
         group_names = set()
         for group_item in self.group_items:
             if group_item.name in group_names:
-                raise ExperimentValidateError("group_name {} 冲突".format(group_item.name))
+                raise ExperimentValidateError(f"group_name {group_item.name} 冲突")
 
             group_names.add(group_item.name)
 
         if sum([Decimal(str(group.weight)) for group in self.group_items]) != 1:
-            raise ExperimentValidateError("实验({}) 分组的 weight 总数不为 1".format(self.name))
+            raise ExperimentValidateError(f"实验({self.name}) 分组的 weight 总数不为 1")
 
     @classmethod
     def from_dict(cls, data, tag_filter_func=None):
@@ -304,16 +303,18 @@ class ExperimentItem(object):
 
         res = []
         for user_tag in user_tags:
-            res.append(UserTag(
-                tag_id=user_tag['id'],
-                columns=user_tag['columns'],
-                not_in=user_tag.get('not_in', False)    # not_in 表示该标签的互斥，不在该标签里
-            ))
+            res.append(
+                UserTag(
+                    tag_id=user_tag['id'],
+                    columns=user_tag['columns'],
+                    not_in=user_tag.get('not_in', False),  # not_in 表示该标签的互斥,不在该标签里
+                )
+            )
 
         return res
 
 
-class GroupItem(object):
+class GroupItem:
     def __init__(self, name, weight, layer_namespaces=None, extra_params=None):
         self.name = name
         self.weight = weight
@@ -330,14 +331,14 @@ class GroupItem(object):
             namespace_names = set()
             for namespace_item in self.layer_namespaces:
                 if namespace_item.name in namespace_names:
-                    raise ExperimentValidateError("namespace name({}) 冲突".format(namespace_item.name))
+                    raise ExperimentValidateError(f"namespace name({namespace_item.name}) 冲突")
 
                 namespace_names.add(namespace_item.name)
         # 分组
         else:
             self.result_type = GroupResultType.group
             if self.weight > 1:
-                raise ExperimentValidateError("group weight({}) 必须小于等于 1".format(self.name))
+                raise ExperimentValidateError(f"group weight({self.name}) 必须小于等于 1")
 
     def get_group(self, unit, **params):
         if self.result_type == GroupResultType.group:
@@ -371,6 +372,9 @@ class GroupItem(object):
         return cls(
             name=data['name'],
             weight=float(data['weight']),
-            layer_namespaces=[NamespaceItem.from_dict(spec, tag_filter_func=tag_filter_func) for spec in data.get('layer_namespaces', [])],
-            extra_params=data.get('extra_params')
+            layer_namespaces=[
+                NamespaceItem.from_dict(spec, tag_filter_func=tag_filter_func)
+                for spec in data.get('layer_namespaces', [])
+            ],
+            extra_params=data.get('extra_params'),
         )

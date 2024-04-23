@@ -1,0 +1,31 @@
+name: CI
+on:
+  pull_request:
+    branches-ignore:
+      - "release-**"
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          # - "3.10" # NOTE: 上游库不支持, 需要fork库搞了, 原因是 ImportError: cannot import name 'MutableMapping' from 'collections' (/opt/hostedtoolcache/Python/3.10.14/x64/lib/python3.10/collections/__init__.py)
+          # - "3.11"
+          # - "3.12"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          check-latest: true
+      - name: Install dependencies
+        run: |
+          pip install -e .[test]
+      - name: Test with pytest
+        run: |
+          make test

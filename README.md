@@ -40,6 +40,9 @@ print(client.get_group("namespace_1", unit="your_unit"))
 # Dev
 
 ```shell
+# install deps (once)
+pip install -e .[test]
+
 # run test
 make test
 

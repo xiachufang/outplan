@@ -1,8 +1,7 @@
-# coding: utf-8
+# ruff: noqa: PLR2004,E501
 import random
 import string
 import time
-
 from collections import defaultdict
 
 import pytest
@@ -11,7 +10,6 @@ from outplan.client import ExperimentGroupClient
 from outplan.exceptions import ExperimentValidateError
 from outplan.experiment import ExperimentItem, GroupItem, NamespaceItem
 from outplan.local import experiment_context
-
 
 HomepageNamespace = NamespaceItem(
     name="namespace_1",
@@ -104,16 +102,10 @@ HomepageNamespace = NamespaceItem(
                                                             name="clt_p8_1",
                                                             bucket=10,
                                                             group_items=[
-                                                                GroupItem(
-                                                                    name="clt_p8_1_a0", weight=0.5
-                                                                ),
-                                                                GroupItem(
-                                                                    name="clt_p8_1_a1", weight=0.5
-                                                                ),
+                                                                GroupItem(name="clt_p8_1_a0", weight=0.5),
+                                                                GroupItem(name="clt_p8_1_a1", weight=0.5),
                                                             ],
-                                                            pre_condition=lambda user_id, **ignore: user_id
-                                                            % 2
-                                                            == 0,
+                                                            pre_condition=lambda user_id, **ignore: user_id % 2 == 0,
                                                         )
                                                     ],
                                                 ),
@@ -124,18 +116,14 @@ HomepageNamespace = NamespaceItem(
                                                             name="clt_p8_2",
                                                             bucket=10,
                                                             group_items=[
-                                                                GroupItem(
-                                                                    name="clt_p8_2_a0", weight=0.5
-                                                                ),
+                                                                GroupItem(name="clt_p8_2_a0", weight=0.5),
                                                                 GroupItem(
                                                                     name="clt_p8_2_a1",
                                                                     weight=0.5,
                                                                     extra_params="extra params",
                                                                 ),
                                                             ],
-                                                            pre_condition=lambda user_id, **ignore: user_id
-                                                            % 2
-                                                            != 0,
+                                                            pre_condition=lambda user_id, **ignore: user_id % 2 != 0,
                                                         )
                                                     ],
                                                 ),
@@ -162,9 +150,7 @@ HomepageNamespace = NamespaceItem(
                 ),
             ],
         ),
-        ExperimentItem(
-            name="homepage_ctl", bucket=1, group_items=[GroupItem(name="h_ctl", weight=1)]
-        ),
+        ExperimentItem(name="homepage_ctl", bucket=1, group_items=[GroupItem(name="h_ctl", weight=1)]),
     ],
 )
 
@@ -438,9 +424,7 @@ TestTagNamespace = NamespaceItem(
 
 
 HomepageNamespace2 = NamespaceItem.from_dict(namespace_spec_dict)
-TestTagNamespace2 = NamespaceItem.from_dict(
-    test_tag_namespace_spec_dict, tag_filter_func=tag_filter
-)
+TestTagNamespace2 = NamespaceItem.from_dict(test_tag_namespace_spec_dict, tag_filter_func=tag_filter)
 
 AutoUpperUnitNamespace = NamespaceItem(
     name="auto_upper_namespace1",
@@ -457,12 +441,12 @@ AutoUpperUnitNamespace = NamespaceItem(
                     name="auto_upper_group2",
                     weight=0.5,
                 ),
-            ]
+            ],
         )
     ],
     bucket=10,
     unit_type="pdid",
-    auto_upper_unit=True
+    auto_upper_unit=True,
 )
 
 auto_upper_namespace_spec_dict = {
@@ -480,18 +464,25 @@ auto_upper_namespace_spec_dict = {
                     "name": "auto_upper_group2",
                     "weight": 0.5,
                 },
-            ]
+            ],
         },
     ],
     "bucket": 10,
     "unit_type": "pdid",
-    "auto_upper_unit": True
+    "auto_upper_unit": True,
 }
 
 AutoUpperUnitNamespace2 = NamespaceItem.from_dict(auto_upper_namespace_spec_dict)
 
 client = ExperimentGroupClient(
-    [HomepageNamespace, HomepageNamespace2, TestTagNamespace, TestTagNamespace2, AutoUpperUnitNamespace, AutoUpperUnitNamespace2]
+    [
+        HomepageNamespace,
+        HomepageNamespace2,
+        TestTagNamespace,
+        TestTagNamespace2,
+        AutoUpperUnitNamespace,
+        AutoUpperUnitNamespace2,
+    ]
 )
 
 
@@ -651,9 +642,7 @@ def test_experiment_group_hook():
     c = ExperimentGroupClient([GroupHookNamespace], get_specified_group_func=group_callback)
 
     c.setup_experiment_context(allow_specify_group=True, admin=True)
-    group = c.get_tracking_group(
-        "group_hook_namespace", unit="12345", user_id=1, pdid="233", track=False
-    )
+    group = c.get_tracking_group("group_hook_namespace", unit="12345", user_id=1, pdid="233", track=False)
     assert group.group_names[0] == "admin"
 
     # unit_type & specify group
@@ -661,9 +650,7 @@ def test_experiment_group_hook():
     assert group.group_names[0] == "admin"
 
     c.setup_experiment_context(admin=False)
-    group = c.get_tracking_group(
-        "group_hook_namespace", unit="12345", user_id=1, pdid="233", track=False
-    )
+    group = c.get_tracking_group("group_hook_namespace", unit="12345", user_id=1, pdid="233", track=False)
     assert group.group_names[0] != "admin"
 
 
@@ -684,7 +671,7 @@ def test_not_full_bucket_namespace_get_group():
     namespace.validate()
 
     cnt = 0
-    while cnt <= 10 and namespace.get_group(unit="foo-{}".format(cnt)) is not None:
+    while cnt <= 10 and namespace.get_group(unit=f"foo-{cnt}") is not None:
         cnt += 1
     assert cnt <= 10
 
@@ -704,41 +691,55 @@ def test_not_full_bucket_namespace_get_group():
     namespace.validate()
 
     cnt = 0
-    while cnt <= 10 and namespace.get_group(unit="foo-{}".format(cnt)) is None:
+    while cnt <= 10 and namespace.get_group(unit=f"foo-{cnt}") is None:
         cnt += 1
     assert cnt <= 10
 
 
 def test_auto_upper_unit_namespace():
-
     def same_group(group_a, group_b):
         if group_a is None and group_b is None:
             return True
         if group_a is None or group_b is None:
             return False
-        return group_a.experiment_trace() == group_b.experiment_trace() and group_a.group_trace() == group_b.group_trace()
+        return (
+            group_a.experiment_trace() == group_b.experiment_trace() and group_a.group_trace() == group_b.group_trace()
+        )
 
     # test auto_upper_namespace1
-    assert same_group(client.get_tracking_group("auto_upper_namespace1", unit="abc-12345"),
-                      client.get_tracking_group("auto_upper_namespace1", unit="ABC-12345"))
+    assert same_group(
+        client.get_tracking_group("auto_upper_namespace1", unit="abc-12345"),
+        client.get_tracking_group("auto_upper_namespace1", unit="ABC-12345"),
+    )
 
     for _ in range(100):
         rand_pdid = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-        assert same_group(client.get_tracking_group("auto_upper_namespace1", unit=rand_pdid),
-                          client.get_tracking_group("auto_upper_namespace1", unit=rand_pdid.upper()))
+        assert same_group(
+            client.get_tracking_group("auto_upper_namespace1", unit=rand_pdid),
+            client.get_tracking_group("auto_upper_namespace1", unit=rand_pdid.upper()),
+        )
 
     # test auto_upper_namespace2
-    assert same_group(client.get_tracking_group("auto_upper_namespace2", unit="abc-12345"),
-                      client.get_tracking_group("auto_upper_namespace2", unit="ABC-12345"))
+    assert same_group(
+        client.get_tracking_group("auto_upper_namespace2", unit="abc-12345"),
+        client.get_tracking_group("auto_upper_namespace2", unit="ABC-12345"),
+    )
 
     for _ in range(100):
         rand_pdid = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-        assert same_group(client.get_tracking_group("auto_upper_namespace2", unit=rand_pdid),
-                          client.get_tracking_group("auto_upper_namespace2", unit=rand_pdid.upper()))
+        assert same_group(
+            client.get_tracking_group("auto_upper_namespace2", unit=rand_pdid),
+            client.get_tracking_group("auto_upper_namespace2", unit=rand_pdid.upper()),
+        )
 
     # test normal namespace
     res = []
     for _ in range(1000):
         rand_pdid = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-        res.append(same_group(client.get_tracking_group("namespace_1", unit=rand_pdid), client.get_tracking_group("namespace_1", unit=rand_pdid.upper())))
+        res.append(
+            same_group(
+                client.get_tracking_group("namespace_1", unit=rand_pdid),
+                client.get_tracking_group("namespace_1", unit=rand_pdid.upper()),
+            )
+        )
     assert not all(res)

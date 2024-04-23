@@ -1,8 +1,8 @@
+import json
 import time
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Iterator, List, Optional, Union
 
-import simplejson
 from typing_extensions import Protocol
 
 from .const import ONE_MINUTE
@@ -12,16 +12,13 @@ from .local import experiment_context
 
 
 class _TrackingClient(Protocol):
-    def track(self, user_id, pdid, event_name, properties=None) -> Any:
-        ...
+    def track(self, user_id, pdid, event_name, properties=None) -> Any: ...
 
 
 class _Logger(Protocol):
-    def error(self, msg: str):
-        ...
+    def error(self, msg: str): ...
 
-    def info(self, msg: str):
-        ...
+    def info(self, msg: str): ...
 
 
 class ExperimentGroupClient:
@@ -37,16 +34,13 @@ class ExperimentGroupClient:
         lazy_load_expire: int = 10 * ONE_MINUTE,
         get_specified_group_func: Optional[Callable] = None,
     ) -> None:
-
         self.namespaces_items = namespaces_items
         self.namespaces = {namespace.name: namespace for namespace in namespaces_items}
         self.tracking_client = tracking_client
         self.logger = logger
         self.lazy_load_namespaces: List[str] = []
         self.lazy_load_expire = lazy_load_expire
-        self._lazy_load_init_ts: Dict[
-            str, int
-        ] = {}  # 记录 lazy load 的 namespace 初始化时间，expire 之后重新 load
+        self._lazy_load_init_ts: Dict[str, int] = {}  # 记录 lazy load 的 namespace 初始化时间,expire 之后重新 load
         self.lazy_load_namespace_items: Dict[str, NamespaceItem] = {}
         self.lazy_load_namespace_item_func = lazy_load_namespace_item_func
         self._get_specified_group_func = get_specified_group_func
@@ -68,9 +62,7 @@ class ExperimentGroupClient:
         """加载有效的 namespace name 列表"""
         cache_key = "lazy_load_namespaces"
         if self.is_key_expire(cache_key):
-            self.lazy_load_namespaces = (
-                self.lazy_load_namespaces_func() if self.lazy_load_namespaces_func else []
-            )
+            self.lazy_load_namespaces = self.lazy_load_namespaces_func() if self.lazy_load_namespaces_func else []
 
             self.refresh_key_expire_time(cache_key)
 
@@ -83,28 +75,25 @@ class ExperimentGroupClient:
             names.add(namespace.name)
 
     def get_namespace_item(self, namespace_name: str) -> NamespaceItem:
-
         # 代码里显式定义的实验直接返回
         if namespace_name in self.namespaces:
             return self.namespaces[namespace_name]
 
         self.load_lazy_namespaces()
         if namespace_name not in self.lazy_load_namespaces:
-            raise ExperimentValidateError("Namespace {} not found.".format(namespace_name))
+            raise ExperimentValidateError(f"Namespace {namespace_name} not found.")
 
         if not self.lazy_load_namespace_item_func:
             raise ExperimentValidateError("lazy_load_namespace_item_func not found")
 
         # 已经 load 过 并且 没过期
-        if namespace_name in self.lazy_load_namespace_items and not self.is_key_expire(
-            namespace_name
-        ):
+        if namespace_name in self.lazy_load_namespace_items and not self.is_key_expire(namespace_name):
             return self.lazy_load_namespace_items[namespace_name]
 
-        # 过期了或者没有 load 过，需要重新 load
+        # 过期了或者没有 load 过,需要重新 load
         _ns = self.lazy_load_namespace_item_func(namespace_name)
         if not _ns:
-            raise ExperimentValidateError("Namespace {} not found".format(namespace_name))
+            raise ExperimentValidateError(f"Namespace {namespace_name} not found")
 
         self.lazy_load_namespace_items[namespace_name] = _ns
         self.refresh_key_expire_time(namespace_name)
@@ -120,7 +109,7 @@ class ExperimentGroupClient:
         cache: bool = True,
         **params,
     ) -> Optional[TrackingGroup]:
-        """取分组的全局唯一标识符，带上实验链的信息"""
+        """取分组的全局唯一标识符,带上实验链的信息"""
         try:
             allow_specify_group = experiment_context.allow_specify_group
         except AttributeError:
@@ -139,7 +128,12 @@ class ExperimentGroupClient:
 
         if unit and allow_specify_group and callable(self._get_specified_group_func):
             group = self._get_specified_group_func(
-                experiment_context, namespace_name, unit, user_id=user_id, pdid=pdid, **params
+                experiment_context,
+                namespace_name,
+                unit,
+                user_id=user_id,
+                pdid=pdid,
+                **params,
             )
             if group:
                 _tracking_group = self.get_tracking_group_by_group_name(namespace_name, group)
@@ -156,7 +150,7 @@ class ExperimentGroupClient:
                         )
                     return _tracking_group
 
-        key = "tracking_group{%s}{%s}" % (namespace_name, unit)
+        key = f"tracking_group{{{namespace_name}}}{{{unit}}}"
 
         if unit and cache and key in cached_group:
             return cached_group[key]
@@ -189,18 +183,14 @@ class ExperimentGroupClient:
         track: bool = True,
         **params,
     ) -> Optional[str]:
-        tracking_group = self.get_tracking_group(
-            namespace_name, unit, user_id, pdid, track, **params
-        )
+        tracking_group = self.get_tracking_group(namespace_name, unit, user_id, pdid, track, **params)
         if not tracking_group:
             return None
 
         return tracking_group.last_group
 
-    def get_tracking_group_by_group_name(
-        self, namespace_name: str, group_name: str
-    ) -> Optional[TrackingGroup]:
-        """ 根据实验组名获取tracking_group """
+    def get_tracking_group_by_group_name(self, namespace_name: str, group_name: str) -> Optional[TrackingGroup]:
+        """根据实验组名获取tracking_group"""
         namespace_item = self.get_namespace_item(namespace_name)  # type: NamespaceItem
         result = namespace_item.get_experiment_and_group_by_name(group_name)
         if result:
@@ -257,11 +247,7 @@ class ExperimentGroupClient:
         """
         try:
             device_id = experiment_context.device_id
-            if (
-                not params.get("user_id")
-                and hasattr(experiment_context, "user_id")
-                and experiment_context.user_id
-            ):
+            if not params.get("user_id") and hasattr(experiment_context, "user_id") and experiment_context.user_id:
                 params["user_id"] = experiment_context.user_id
 
             yield self.get_group(namespace_name, unit=device_id, pdid=device_id, **params)
@@ -270,21 +256,15 @@ class ExperimentGroupClient:
             # 这里需要被 fallback 到 control 组
             if self.logger:
                 self.logger.error(
-                    f"auto_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
+                    f"auto_group error: namespace_name: {namespace_name}, msg: {e!s}, params: {json.dumps(params)}",
                 )
             yield None
 
     @contextmanager
-    def auto_tracking_group_by_device_id(
-        self, namespace_name: str, **params
-    ) -> Iterator[Optional[TrackingGroup]]:
+    def auto_tracking_group_by_device_id(self, namespace_name: str, **params) -> Iterator[Optional[TrackingGroup]]:
         try:
             device_id = experiment_context.device_id
-            if (
-                not params.get("user_id")
-                and hasattr(experiment_context, "user_id")
-                and experiment_context.user_id
-            ):
+            if not params.get("user_id") and hasattr(experiment_context, "user_id") and experiment_context.user_id:
                 params["user_id"] = experiment_context.user_id
 
             yield self.get_tracking_group(namespace_name, unit=device_id, pdid=device_id, **params)
@@ -292,22 +272,16 @@ class ExperimentGroupClient:
         except Exception as e:
             if self.logger:
                 self.logger.error(
-                    f"auto_tracking_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
+                    f"auto_tracking_group error: namespace_name: {namespace_name}, msg: {e!s}, params: {json.dumps(params)}",  # noqa: E501
                 )
             yield None
 
     @contextmanager
-    def auto_tracking_group_by_user_id(
-        self, namespace_name: str, **params
-    ) -> Iterator[Optional[TrackingGroup]]:
+    def auto_tracking_group_by_user_id(self, namespace_name: str, **params) -> Iterator[Optional[TrackingGroup]]:
         experiment_error = True
         try:
             user_id = experiment_context.user_id
-            if (
-                not params.get("pdid")
-                and hasattr(experiment_context, "device_id")
-                and experiment_context.device_id
-            ):
+            if not params.get("pdid") and hasattr(experiment_context, "device_id") and experiment_context.device_id:
                 params["pdid"] = experiment_context.device_id
 
             res = self.get_tracking_group(namespace_name, unit=user_id, user_id=user_id, **params)
@@ -316,7 +290,7 @@ class ExperimentGroupClient:
         except Exception as e:
             if self.logger and experiment_error:
                 self.logger.error(
-                    f"auto_tracking_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
+                    f"auto_tracking_group error: namespace_name: {namespace_name}, msg: {e!s}, params: {json.dumps(params)}",  # noqa: E501
                 )
 
             # 实验错误需要被 fallback 到 control 组
@@ -331,11 +305,7 @@ class ExperimentGroupClient:
         experiment_error = True
         try:
             user_id = experiment_context.user_id or 0
-            if (
-                not params.get("pdid")
-                and hasattr(experiment_context, "device_id")
-                and experiment_context.device_id
-            ):
+            if not params.get("pdid") and hasattr(experiment_context, "device_id") and experiment_context.device_id:
                 params["pdid"] = experiment_context.device_id
 
             res = self.get_group(namespace_name, unit=user_id, user_id=user_id, **params)
@@ -345,7 +315,7 @@ class ExperimentGroupClient:
             # 这里需要被 fallback 到 control 组
             if self.logger and experiment_error:
                 self.logger.error(
-                    f"auto_group error: namespace_name: {namespace_name}, msg: {str(e)}, params: {simplejson.dumps(params)}",
+                    f"auto_group error: namespace_name: {namespace_name}, msg: {e!s}, params: {json.dumps(params)}",
                 )
             if experiment_error:
                 yield None
