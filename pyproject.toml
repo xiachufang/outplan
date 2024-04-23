@@ -24,11 +24,6 @@ readme = "README.md"
 license = { file = "LICENSE" }
 urls = { Repository = "https://github.com/xiachufang/outplan" }
 dynamic = ["version"]
-dependencies = [
-    'planout==0.6.0',
-    'typing-extensions',
-    'dataclasses; python_version < "3.7"',
-]
 requires-python = ">= 3.6"
 authors = [{ name = "x1ah", email = "gaoxiaoqiang@xiachufang.com" }]
 classifiers = [
@@ -44,6 +39,16 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
+
+dependencies = [
+    'planout==0.6.0',
+    'six',
+    'typing-extensions',
+    'dataclasses; python_version < "3.7"',
+]
+
+[project.optional-dependencies]
+test = ["pytest", "gevent"]
 
 
 [tool.mypy]
