@@ -217,6 +217,9 @@ class NamespaceItem:
             # 直到取到最底层分组
             while True:
                 _res = group_item.get_group(unit, **params)
+                # 没有通过 bucket 匹配到实验
+                if _res is None:
+                    return None
                 if isinstance(_res, TrackingGroup):
                     for group_name, exp_name in zip(group_names, exp_names):
                         _res.add_group_name(group_name)

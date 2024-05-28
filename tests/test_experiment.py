@@ -696,6 +696,167 @@ def test_not_full_bucket_namespace_get_group():
     assert cnt <= 10
 
 
+def test_nested_not_full_experiment_group_client():
+    """
+    测试实验组嵌套子namespace，并且子 namespace 中实验 bucket 不满的情况
+    """
+    namespace_spec = {
+        "name": "test_namespace_exp2",
+        "bucket": 100,
+        "unit_type": "pdid",
+        "auto_upper_unit": True,
+        "experiment_items": [
+            {
+                "name": "ttt111",
+                "bucket": 50,
+                "pre_condition": "",
+                "group_items": [
+                    {
+                        "name": "ns1",
+                        "weight": 0.33,
+                        "extra_params": "",
+                        "layer_namespaces": [
+                            {
+                                "name": "nested_ns1",
+                                "bucket": 100,
+                                "unit_type": "pdid",
+                                "auto_upper_unit": True,
+                                "experiment_items": [
+                                    {
+                                        "name": "nested_test_1",
+                                        "bucket": 10,
+                                        "pre_condition": "",
+                                        "group_items": [
+                                            {
+                                                "name": "exp1",
+                                                "weight": 0.5,
+                                                "extra_params": "",
+                                                "layer_namespaces": [],
+                                            },
+                                            {
+                                                "name": "control1",
+                                                "weight": 0.5,
+                                                "extra_params": "",
+                                                "layer_namespaces": [],
+                                            },
+                                        ],
+                                        "user_tags": [],
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "name": "ns2",
+                        "weight": 0.34,
+                        "extra_params": "",
+                        "layer_namespaces": [
+                            {
+                                "name": "nested_test_ns2",
+                                "bucket": 100,
+                                "unit_type": "pdid",
+                                "auto_upper_unit": True,
+                                "experiment_items": [
+                                    {
+                                        "name": "nested_test_0528_2",
+                                        "bucket": 20,
+                                        "pre_condition": "",
+                                        "group_items": [
+                                            {
+                                                "name": "exp2",
+                                                "weight": 0.5,
+                                                "extra_params": "",
+                                                "layer_namespaces": [],
+                                            },
+                                            {
+                                                "name": "control2",
+                                                "weight": 0.5,
+                                                "extra_params": "",
+                                                "layer_namespaces": [],
+                                            },
+                                        ],
+                                        "user_tags": [],
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "name": "ns3",
+                        "weight": 0.33,
+                        "extra_params": "",
+                        "layer_namespaces": [
+                            {
+                                "name": "test_nested_0528_3",
+                                "bucket": 100,
+                                "unit_type": "pdid",
+                                "auto_upper_unit": True,
+                                "experiment_items": [
+                                    {
+                                        "name": "test_nested_0528_3",
+                                        "bucket": 30,
+                                        "pre_condition": "",
+                                        "group_items": [
+                                            {
+                                                "name": "exp3",
+                                                "weight": 0.5,
+                                                "extra_params": "",
+                                                "layer_namespaces": [],
+                                            },
+                                            {
+                                                "name": "control3",
+                                                "weight": 0.5,
+                                                "extra_params": "",
+                                                "layer_namespaces": [],
+                                            },
+                                        ],
+                                        "user_tags": [],
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+                "user_tags": [],
+            },
+            {
+                "name": "test_nest_0528_4",
+                "bucket": 50,
+                "pre_condition": "",
+                "group_items": [
+                    {
+                        "name": "a",
+                        "weight": 0.5,
+                        "extra_params": "",
+                        "layer_namespaces": [],
+                    },
+                    {
+                        "name": "control",
+                        "weight": 0.5,
+                        "extra_params": "",
+                        "layer_namespaces": [],
+                    },
+                ],
+                "user_tags": [],
+            },
+        ],
+    }
+    namespace = NamespaceItem.from_dict(namespace_spec)
+    namespace.validate()
+
+    for i in range(1000):
+        namespace.get_group(unit=f"foo-{i}")
+
+    expected = ['a', None, 'control', 'a', None, 'control', 'a', None, 'a', 'control', 'exp1', 'control3', 'control', None, 'control3', None, 'exp3', 'a', None, None]
+
+    for i in range(20):
+        res = namespace.get_group(unit=f"foo-{i}")
+        if res:
+            assert res.last_group == expected[i]
+        else:
+            assert expected[i] is None
+
+
 def test_auto_upper_unit_namespace():
     def same_group(group_a, group_b):
         if group_a is None and group_b is None:
