@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/xiachufang/outplan/compare/v3.0.0...v3.0.1) (2024-05-28)
+
+
+### Bug Fixes
+
+* 支持嵌套 namespace 非全量 bucket 实验 ([393c732](https://github.com/xiachufang/outplan/commit/393c73247c19893e444c134796c553981f8dfabb))
+
 ## [3.0.0](https://github.com/xiachufang/outplan/compare/v2.2.0...v3.0.0) (2024-04-23)
 
 
